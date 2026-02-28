@@ -1,0 +1,163 @@
+# Demo HTTPRoutes for RouteBoard screenshots
+# Apply: kubectl apply -f docs/demo-routes.yaml
+# Remove: kubectl delete -f docs/demo-routes.yaml
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: argocd
+  namespace: apps
+  annotations:
+    routeboard.io/description: "GitOps continuous delivery"
+spec:
+  hostnames: ["argocd.homelab.ts"]
+  parentRefs:
+    - name: internal
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - name: argocd-server
+          port: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: jellyfin
+  namespace: apps
+  annotations:
+    routeboard.io/description: "Media streaming server"
+spec:
+  hostnames: ["jellyfin.homelab.ts"]
+  parentRefs:
+    - name: internal
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - name: jellyfin
+          port: 8096
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: home-assistant
+  namespace: apps
+  annotations:
+    routeboard.io/description: "Smart home automation"
+spec:
+  hostnames: ["hass.homelab.ts"]
+  parentRefs:
+    - name: internal
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - name: home-assistant
+          port: 8123
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: n8n
+  namespace: apps
+  annotations:
+    routeboard.io/description: "Workflow automation platform"
+spec:
+  hostnames: ["n8n.homelab.ts"]
+  parentRefs:
+    - name: internal
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - name: n8n
+          port: 5678
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: nextcloud
+  namespace: apps
+  annotations:
+    routeboard.io/description: "Self-hosted cloud storage"
+spec:
+  hostnames: ["cloud.homelab.ts"]
+  parentRefs:
+    - name: internal
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - name: nextcloud
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: prometheus
+  namespace: monitoring
+  annotations:
+    routeboard.io/description: "Metrics collection and alerting"
+spec:
+  hostnames: ["prometheus.homelab.ts"]
+  parentRefs:
+    - name: internal
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - name: kube-prometheus-stack-prometheus
+          port: 9090
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  annotations:
+    routeboard.io/description: "Alert routing and silencing"
+spec:
+  hostnames: ["alertmanager.homelab.ts"]
+  parentRefs:
+    - name: internal
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - name: kube-prometheus-stack-alertmanager
+          port: 9093
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: longhorn
+  namespace: storage
+  annotations:
+    routeboard.io/description: "Distributed block storage"
+spec:
+  hostnames: ["longhorn.homelab.ts"]
+  parentRefs:
+    - name: internal
+      namespace: networking
+      sectionName: https
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - name: longhorn-frontend
+          port: 80
