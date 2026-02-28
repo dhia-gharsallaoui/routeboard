@@ -19,10 +19,8 @@ export function ServiceIcon({
 }: ServiceIconProps) {
   const name = (serviceName || resourceName).toLowerCase();
 
-  // Find matching slug
+  // 1. Try known slug mapping
   const slug = resolveSlug(name);
-
-  // If we have a slug, try live fetch with fallback
   if (slug) {
     return (
       <BrandIcon
@@ -34,7 +32,7 @@ export function ServiceIcon({
     );
   }
 
-  // Category-based fallback icons
+  // 2. Category-based fallback icons
   if (/\b(db|postgres|mysql|mongo|mariadb)\b/.test(name)) {
     return <Database size={size} className={className} />;
   }
@@ -42,7 +40,30 @@ export function ServiceIcon({
     return <Layers size={size} className={className} />;
   }
 
+  // 3. Try the service name itself as a CDN slug (strip common suffixes/prefixes)
+  const guessedSlug = guessSlug(name);
+  if (guessedSlug) {
+    return (
+      <BrandIcon
+        slug={guessedSlug}
+        size={size}
+        className={className}
+      />
+    );
+  }
+
   return <Globe size={size} className={className} />;
+}
+
+// Try to derive a Simple Icons slug from the service name.
+// Strips common k8s suffixes like -server, -svc, -app, -web, etc.
+function guessSlug(name: string): string | undefined {
+  const cleaned = name
+    .replace(/[-_](server|svc|service|app|web|ui|api|proxy|gateway|controller|operator|backend|frontend|master|main|primary)\b/g, "")
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+  if (cleaned.length < 2) return undefined;
+  return cleaned;
 }
 
 function BrandIcon({
