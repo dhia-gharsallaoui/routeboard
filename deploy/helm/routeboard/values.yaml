@@ -1,0 +1,57 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/dhia/routeboard
+  pullPolicy: IfNotPresent
+  tag: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+rbac:
+  create: true
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: routeboard.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+config:
+  port: 8080
+  watchIngress: true
+  watchHTTPRoute: true
+  namespaceDenylist: "kube-system,kube-public,kube-node-lease"
+  namespaceAllowlist: ""
+  labelSelector: ""
+  title: "RouteBoard"
+  logLevel: "info"
+  resyncInterval: "30m"
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  readOnlyRootFilesystem: true
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,36 @@
+# Go
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# React/Vite
+web/node_modules/
+web/dist/
+bun.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Embedded build artifacts
+internal/server/dist/
+
+# Build
+*.log

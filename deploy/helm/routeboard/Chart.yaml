@@ -1,0 +1,16 @@
+apiVersion: v2
+name: routeboard
+description: Kubernetes-native Service Entry Portal — auto-discovers Ingress and HTTPRoute resources
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - kubernetes
+  - ingress
+  - gateway-api
+  - httproute
+  - dashboard
+  - service-discovery
+home: https://github.com/dhia/routeboard
+sources:
+  - https://github.com/dhia/routeboard
