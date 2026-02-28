@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import type { Route } from "../types";
 import { SearchBar } from "./SearchBar";
 import { NamespaceFilter } from "./NamespaceFilter";
+import { HealthFilter } from "./HealthFilter";
 import { ViewToggle } from "./ViewToggle";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -9,10 +11,13 @@ interface LayoutProps {
   connected: boolean;
   routeCount: number;
   namespaces: string[];
+  allRoutes: Route[];
   search: string;
   onSearchChange: (value: string) => void;
   namespace: string;
   onNamespaceChange: (value: string) => void;
+  healthFilter: string;
+  onHealthFilterChange: (value: string) => void;
   view: "grid" | "list";
   onViewChange: (view: "grid" | "list") => void;
   children: ReactNode;
@@ -23,10 +28,13 @@ export function Layout({
   connected,
   routeCount,
   namespaces,
+  allRoutes,
   search,
   onSearchChange,
   namespace,
   onNamespaceChange,
+  healthFilter,
+  onHealthFilterChange,
   view,
   onViewChange,
   children,
@@ -67,6 +75,11 @@ export function Layout({
                 namespaces={namespaces}
                 value={namespace}
                 onChange={onNamespaceChange}
+              />
+              <HealthFilter
+                value={healthFilter}
+                onChange={onHealthFilterChange}
+                routes={allRoutes}
               />
               <ViewToggle view={view} onChange={onViewChange} />
               <ThemeToggle />

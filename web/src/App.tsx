@@ -8,6 +8,7 @@ import { SkeletonGrid } from "./components/Skeleton";
 function App() {
   const {
     routes,
+    allRoutes,
     groupedRoutes,
     config,
     loading,
@@ -16,12 +17,14 @@ function App() {
     setSearch,
     namespace,
     setNamespace,
+    healthFilter,
+    setHealthFilter,
   } = useRoutes();
 
   const [view, setView] = useState<"grid" | "list">("grid");
 
   const hasRoutes = Object.keys(groupedRoutes).length > 0;
-  const isSearching = search !== "" || namespace !== "";
+  const isSearching = search !== "" || namespace !== "" || healthFilter !== "";
 
   return (
     <Layout
@@ -29,10 +32,13 @@ function App() {
       connected={connected}
       routeCount={routes.length}
       namespaces={config.namespaces}
+      allRoutes={allRoutes}
       search={search}
       onSearchChange={setSearch}
       namespace={namespace}
       onNamespaceChange={setNamespace}
+      healthFilter={healthFilter}
+      onHealthFilterChange={setHealthFilter}
       view={view}
       onViewChange={setView}
     >

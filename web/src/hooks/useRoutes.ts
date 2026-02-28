@@ -11,6 +11,7 @@ export function useRoutes() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [namespace, setNamespace] = useState("");
+  const [healthFilter, setHealthFilter] = useState("");
 
   const fetchRoutes = useCallback(async () => {
     try {
@@ -44,12 +45,16 @@ export function useRoutes() {
     fetchConfig();
   });
 
-  // Client-side filtering: search + namespace + hide no-URL routes
+  // Client-side filtering: search + namespace + health + hide no-URL routes
   const filteredRoutes = useMemo(() => {
     let routes = allRoutes.filter((r) => r.url);
 
     if (namespace) {
       routes = routes.filter((r) => r.namespace === namespace);
+    }
+
+    if (healthFilter) {
+      routes = routes.filter((r) => r.health === healthFilter);
     }
 
     if (search) {
@@ -65,7 +70,7 @@ export function useRoutes() {
     }
 
     return routes;
-  }, [allRoutes, namespace, search]);
+  }, [allRoutes, namespace, healthFilter, search]);
 
   const groupedRoutes = useMemo(() => {
     const groups: Record<string, Route[]> = {};
@@ -96,5 +101,7 @@ export function useRoutes() {
     setSearch,
     namespace,
     setNamespace,
+    healthFilter,
+    setHealthFilter,
   };
 }
