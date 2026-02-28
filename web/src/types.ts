@@ -18,10 +18,12 @@ export interface Route {
   labels?: Record<string, string>;
   createdAt: string;
   updatedAt: string;
+  health: "unknown" | "healthy" | "degraded" | "unhealthy";
+  healthCheckedAt?: string;
 }
 
 export interface ChangeEvent {
-  type: "added" | "updated" | "deleted";
+  type: "added" | "updated" | "deleted" | "health";
   route: Route;
 }
 

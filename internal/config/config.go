@@ -23,6 +23,10 @@ type Config struct {
 
 	Title    string
 	LogLevel string
+
+	HealthEnabled  bool
+	HealthInterval time.Duration
+	HealthTimeout  time.Duration
 }
 
 func Load() *Config {
@@ -40,6 +44,9 @@ func Load() *Config {
 		WatchHTTPRoute: envBool("ROUTEBOARD_WATCH_HTTPROUTE", true),
 		Title:          envStr("ROUTEBOARD_TITLE", "RouteBoard"),
 		LogLevel:       envStr("ROUTEBOARD_LOG_LEVEL", "info"),
+		HealthEnabled:  envBool("ROUTEBOARD_HEALTH_ENABLED", true),
+		HealthInterval: envDuration("ROUTEBOARD_HEALTH_INTERVAL", 30*time.Second),
+		HealthTimeout:  envDuration("ROUTEBOARD_HEALTH_TIMEOUT", 5*time.Second),
 	}
 }
 

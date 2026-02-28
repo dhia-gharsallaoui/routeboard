@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/dhia/routeboard/internal/config"
+	"github.com/dhia/routeboard/internal/health"
 	"github.com/dhia/routeboard/internal/k8s"
 	"github.com/dhia/routeboard/internal/server"
 	"github.com/dhia/routeboard/internal/store"
@@ -42,6 +43,11 @@ func main() {
 			cancel()
 		}
 	}()
+
+	if cfg.HealthEnabled {
+		checker := health.NewChecker(cfg, routeStore)
+		go checker.Run(ctx)
+	}
 
 	srv := server.New(cfg, routeStore, broker, server.WebFS())
 	if err := srv.Run(ctx); err != nil {

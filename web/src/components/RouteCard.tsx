@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Lock, Link, ArrowUpRight, Copy, Check } from "lucide-react";
 import type { Route } from "../types";
 import { ServiceIcon } from "./ServiceIcon";
+import { HealthDot } from "./HealthDot";
 
 interface RouteCardProps {
   route: Route;
@@ -42,6 +43,7 @@ export function RouteCard({ route, index, view }: RouteCardProps) {
           <div className="flex items-center gap-2">
             <span className="font-medium text-tx1 truncate text-sm">{route.title}</span>
             {route.tls && <Lock className="w-3 h-3 text-success flex-shrink-0" />}
+            <HealthDot health={route.health} checkedAt={route.healthCheckedAt} />
           </div>
           {route.description && (
             <p className="text-xs text-tx3 truncate mt-0.5">{route.description}</p>
@@ -98,6 +100,7 @@ export function RouteCard({ route, index, view }: RouteCardProps) {
                 {route.title}
               </h3>
               {route.tls && <Lock className="w-3.5 h-3.5 text-success flex-shrink-0" />}
+              <HealthDot health={route.health} checkedAt={route.healthCheckedAt} size="md" />
             </div>
             {route.description && (
               <p className="text-xs text-tx2 mt-1 line-clamp-2 leading-relaxed">

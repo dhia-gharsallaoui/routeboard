@@ -30,4 +30,7 @@ type Route struct {
 	Annotations map[string]string `json:"-"`
 	CreatedAt   time.Time         `json:"createdAt"`
 	UpdatedAt   time.Time         `json:"updatedAt"`
+
+	Health          HealthStatus `json:"health"`
+	HealthCheckedAt time.Time    `json:"healthCheckedAt,omitempty"`
 }

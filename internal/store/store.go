@@ -3,6 +3,7 @@ package store
 import (
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/dhia/routeboard/internal/model"
 )
@@ -13,6 +14,7 @@ const (
 	ChangeAdded   ChangeType = "added"
 	ChangeUpdated ChangeType = "updated"
 	ChangeDeleted ChangeType = "deleted"
+	ChangeHealth  ChangeType = "health"
 )
 
 type ChangeEvent struct {
@@ -89,6 +91,30 @@ func (s *Store) List() []*model.Route {
 		return routes[i].Title < routes[j].Title
 	})
 
+	return routes
+}
+
+func (s *Store) UpdateHealth(id string, status model.HealthStatus, checkedAt time.Time) {
+	s.mu.Lock()
+	route, exists := s.routes[id]
+	if exists {
+		route.Health = status
+		route.HealthCheckedAt = checkedAt
+	}
+	s.mu.Unlock()
+
+	if exists && s.notifyFn != nil {
+		s.notifyFn(ChangeEvent{Type: ChangeHealth, Route: route})
+	}
+}
+
+func (s *Store) ListAll() []*model.Route {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	routes := make([]*model.Route, 0, len(s.routes))
+	for _, r := range s.routes {
+		routes = append(routes, r)
+	}
 	return routes
 }
 
