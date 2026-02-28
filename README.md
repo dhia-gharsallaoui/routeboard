@@ -46,7 +46,7 @@ Existing tools didn't fit: [Backstage](https://backstage.io/) is too heavy, [Hom
 ### Helm (recommended)
 
 ```bash
-helm install routeboard deploy/helm/routeboard \
+helm install routeboard oci://ghcr.io/dhia-gharsallaoui/helm/routeboard \
   -n routeboard --create-namespace
 ```
 
@@ -55,6 +55,13 @@ Then port-forward and open in your browser:
 ```bash
 kubectl port-forward -n routeboard svc/routeboard 8080:80
 open http://localhost:8080
+```
+
+### From source
+
+```bash
+helm install routeboard deploy/helm/routeboard \
+  -n routeboard --create-namespace
 ```
 
 ### Local Development
@@ -70,8 +77,8 @@ make web-dev
 ### Docker
 
 ```bash
-docker build -t routeboard .
-docker run -v ~/.kube/config:/home/nonroot/.kube/config:ro routeboard
+docker run -v ~/.kube/config:/home/nonroot/.kube/config:ro \
+  ghcr.io/dhia-gharsallaoui/routeboard:latest
 ```
 
 ## Configuration

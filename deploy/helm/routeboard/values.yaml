@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/dhia/routeboard
+  repository: ghcr.io/dhia-gharsallaoui/routeboard
   pullPolicy: IfNotPresent
   tag: ""
 
