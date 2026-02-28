@@ -3,6 +3,7 @@ import { useRoutes } from "./hooks/useRoutes";
 import { Layout } from "./components/Layout";
 import { RouteGrid } from "./components/RouteGrid";
 import { EmptyState } from "./components/EmptyState";
+import { SkeletonGrid } from "./components/Skeleton";
 
 function App() {
   const {
@@ -22,19 +23,6 @@ function App() {
   const hasRoutes = Object.keys(groupedRoutes).length > 0;
   const isSearching = search !== "" || namespace !== "";
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-deep flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 animate-fade-in">
-          <div className="text-4xl">🧭</div>
-          <p className="font-display font-semibold text-tx2 text-sm">
-            Discovering routes...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <Layout
       title={config.title}
@@ -48,7 +36,9 @@ function App() {
       view={view}
       onViewChange={setView}
     >
-      {hasRoutes ? (
+      {loading ? (
+        <SkeletonGrid />
+      ) : hasRoutes ? (
         <RouteGrid groupedRoutes={groupedRoutes} view={view} />
       ) : (
         <EmptyState searching={isSearching} />

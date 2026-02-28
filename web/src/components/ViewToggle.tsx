@@ -1,3 +1,5 @@
+import { LayoutGrid, List } from "lucide-react";
+
 interface ViewToggleProps {
   view: "grid" | "list";
   onChange: (view: "grid" | "list") => void;
@@ -15,12 +17,7 @@ export function ViewToggle({ view, onChange }: ViewToggleProps) {
         }`}
         title="Grid view"
       >
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-          <rect x="1" y="1" width="6" height="6" rx="1" />
-          <rect x="9" y="1" width="6" height="6" rx="1" />
-          <rect x="1" y="9" width="6" height="6" rx="1" />
-          <rect x="9" y="9" width="6" height="6" rx="1" />
-        </svg>
+        <LayoutGrid className="w-4 h-4" />
       </button>
       <div className="w-px h-5 bg-line" />
       <button
@@ -32,11 +29,7 @@ export function ViewToggle({ view, onChange }: ViewToggleProps) {
         }`}
         title="List view"
       >
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-          <rect x="1" y="2" width="14" height="2.5" rx="0.75" />
-          <rect x="1" y="6.75" width="14" height="2.5" rx="0.75" />
-          <rect x="1" y="11.5" width="14" height="2.5" rx="0.75" />
-        </svg>
+        <List className="w-4 h-4" />
       </button>
     </div>
   );
