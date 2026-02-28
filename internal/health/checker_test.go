@@ -29,9 +29,12 @@ func TestCheckHealthy(t *testing.T) {
 	s := store.New(nil)
 	checker := NewChecker(cfg, s)
 
-	status := checker.check(srv.URL)
+	status, elapsed := checker.check(srv.URL)
 	if status != model.HealthHealthy {
 		t.Errorf("got %q, want %q", status, model.HealthHealthy)
+	}
+	if elapsed <= 0 {
+		t.Error("expected elapsed > 0 for healthy check")
 	}
 }
 
@@ -43,9 +46,12 @@ func TestCheckUnhealthy500(t *testing.T) {
 
 	checker := NewChecker(testConfig(), store.New(nil))
 
-	status := checker.check(srv.URL)
+	status, elapsed := checker.check(srv.URL)
 	if status != model.HealthUnhealthy {
 		t.Errorf("got %q, want %q", status, model.HealthUnhealthy)
+	}
+	if elapsed <= 0 {
+		t.Error("expected elapsed > 0 for server response")
 	}
 }
 
@@ -57,18 +63,24 @@ func TestCheckDegraded4xx(t *testing.T) {
 
 	checker := NewChecker(testConfig(), store.New(nil))
 
-	status := checker.check(srv.URL)
+	status, elapsed := checker.check(srv.URL)
 	if status != model.HealthDegraded {
 		t.Errorf("got %q, want %q", status, model.HealthDegraded)
+	}
+	if elapsed <= 0 {
+		t.Error("expected elapsed > 0 for server response")
 	}
 }
 
 func TestCheckUnhealthyConnectionRefused(t *testing.T) {
 	checker := NewChecker(testConfig(), store.New(nil))
 
-	status := checker.check("http://localhost:1") // nothing listening
+	status, elapsed := checker.check("http://localhost:1") // nothing listening
 	if status != model.HealthUnhealthy {
 		t.Errorf("got %q, want %q", status, model.HealthUnhealthy)
+	}
+	if elapsed != 0 {
+		t.Errorf("expected elapsed == 0 for connection error, got %v", elapsed)
 	}
 }
 
@@ -83,9 +95,12 @@ func TestCheckHealthyRedirect(t *testing.T) {
 
 	checker := NewChecker(testConfig(), store.New(nil))
 
-	status := checker.check(redirect.URL)
+	status, elapsed := checker.check(redirect.URL)
 	if status != model.HealthHealthy {
 		t.Errorf("got %q, want %q", status, model.HealthHealthy)
+	}
+	if elapsed <= 0 {
+		t.Error("expected elapsed > 0 for healthy redirect")
 	}
 }
 
@@ -108,6 +123,12 @@ func TestCheckAllUpdatesStore(t *testing.T) {
 	}
 	if route.HealthCheckedAt.IsZero() {
 		t.Error("HealthCheckedAt should be set")
+	}
+	if route.ResponseTimeMs < 0 {
+		t.Error("expected ResponseTimeMs >= 0 after health check")
+	}
+	if len(route.ResponseTimeHistory) != 1 {
+		t.Errorf("expected 1 response time history entry, got %d", len(route.ResponseTimeHistory))
 	}
 
 	// Should have received a health change event

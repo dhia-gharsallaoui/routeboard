@@ -90,27 +90,27 @@ func (c *Checker) checkAll() {
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			status := c.check(r.URL)
+			status, elapsed := c.check(r.URL)
 			now := time.Now()
-			c.store.UpdateHealth(r.ID, status, now)
+			c.store.UpdateHealth(r.ID, status, now, elapsed.Milliseconds())
 		}(route)
 	}
 
 	wg.Wait()
 }
 
-func (c *Checker) check(url string) model.HealthStatus {
+func (c *Checker) check(url string) (model.HealthStatus, time.Duration) {
 	start := time.Now()
 
 	req, err := http.NewRequest(http.MethodHead, url, nil)
 	if err != nil {
-		return model.HealthUnhealthy
+		return model.HealthUnhealthy, 0
 	}
 	req.Header.Set("User-Agent", "RouteBoard-HealthCheck/1.0")
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return model.HealthUnhealthy
+		return model.HealthUnhealthy, 0
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -120,12 +120,12 @@ func (c *Checker) check(url string) model.HealthStatus {
 	switch {
 	case resp.StatusCode >= 200 && resp.StatusCode < 400:
 		if elapsed > degradedThreshold {
-			return model.HealthDegraded
+			return model.HealthDegraded, elapsed
 		}
-		return model.HealthHealthy
+		return model.HealthHealthy, elapsed
 	case resp.StatusCode >= 400 && resp.StatusCode < 500:
-		return model.HealthDegraded
+		return model.HealthDegraded, elapsed
 	default:
-		return model.HealthUnhealthy
+		return model.HealthUnhealthy, elapsed
 	}
 }

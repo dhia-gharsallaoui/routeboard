@@ -1,5 +1,5 @@
 import { ArrowUpRight, Check, Copy, Link, Lock, Star } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 import type { Route } from "../types";
 import { HealthDot } from "./HealthDot";
 import { ServiceIcon } from "./ServiceIcon";
@@ -11,10 +11,19 @@ interface RouteCardProps {
 	view: "grid" | "list";
 	isFavorite: boolean;
 	onToggleFavorite: (id: string) => void;
+	onSelect?: (id: string) => void;
+	isFocused?: boolean;
 }
 
-export function RouteCard({ route, index, view, isFavorite, onToggleFavorite }: RouteCardProps) {
+export function RouteCard({ route, index, view, isFavorite, onToggleFavorite, onSelect, isFocused }: RouteCardProps) {
 	const [copied, setCopied] = useState(false);
+	const cardRef = React.useRef<HTMLButtonElement>(null);
+
+	React.useEffect(() => {
+		if (isFocused && cardRef.current) {
+			cardRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
+		}
+	}, [isFocused]);
 
 	const truncatedUrl = route.url ? route.url.replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
 
@@ -33,13 +42,15 @@ export function RouteCard({ route, index, view, isFavorite, onToggleFavorite }: 
 		onToggleFavorite(route.id);
 	};
 
+	const focusRing = isFocused ? "ring-2 ring-accent ring-offset-2 ring-offset-deep" : "";
+
 	if (view === "list") {
 		return (
-			<a
-				href={route.url || "#"}
-				target="_blank"
-				rel="noopener noreferrer"
-				className="animate-card-enter group flex items-center gap-4 px-4 py-3 bg-card border border-line rounded-lg hover:border-line-hover transition-all duration-200 hover:shadow-[var(--shadow-card-hover)]"
+			<button
+				ref={cardRef}
+				type="button"
+				onClick={() => onSelect?.(route.id)}
+				className={`animate-card-enter group flex items-center gap-4 px-4 py-3 bg-card border border-line rounded-lg hover:border-line-hover transition-all duration-200 hover:shadow-[var(--shadow-card-hover)] cursor-pointer text-left w-full ${focusRing}`}
 				style={{ animationDelay: `${index * 30}ms` }}
 			>
 				<button
@@ -61,6 +72,7 @@ export function RouteCard({ route, index, view, isFavorite, onToggleFavorite }: 
 						{route.tls && <Lock className="w-3 h-3 text-success flex-shrink-0" />}
 						<HealthDot health={route.health} checkedAt={route.healthCheckedAt} />
 						{route.healthHistory && <Sparkline history={route.healthHistory} />}
+						<ResponseTimeBadge ms={route.responseTimeMs} />
 					</div>
 					{route.description && <p className="text-xs text-tx3 truncate mt-0.5">{route.description}</p>}
 				</div>
@@ -81,17 +93,28 @@ export function RouteCard({ route, index, view, isFavorite, onToggleFavorite }: 
 					{copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
 				</button>
 
-				<ArrowUpRight className="w-4 h-4 text-tx3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-			</a>
+				{route.url && (
+					<a
+						href={route.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						onClick={(e) => e.stopPropagation()}
+						className="flex-shrink-0 p-1 text-tx3 opacity-0 group-hover:opacity-100 hover:text-accent transition-all"
+						title="Open URL"
+					>
+						<ArrowUpRight className="w-4 h-4" />
+					</a>
+				)}
+			</button>
 		);
 	}
 
 	return (
-		<a
-			href={route.url || "#"}
-			target="_blank"
-			rel="noopener noreferrer"
-			className="animate-card-enter group relative flex flex-col bg-card border border-line rounded-xl overflow-hidden transition-all duration-300 hover:border-line-hover hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1"
+		<button
+			ref={cardRef}
+			type="button"
+			onClick={() => onSelect?.(route.id)}
+			className={`animate-card-enter group relative flex flex-col bg-card border border-line rounded-xl overflow-hidden transition-all duration-300 hover:border-line-hover hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 cursor-pointer text-left w-full ${focusRing}`}
 			style={{
 				animationDelay: `${index * 50}ms`,
 				boxShadow: "var(--shadow-card)",
@@ -111,6 +134,7 @@ export function RouteCard({ route, index, view, isFavorite, onToggleFavorite }: 
 							<h3 className="font-display font-semibold text-tx1 truncate text-[15px] leading-tight">{route.title}</h3>
 							{route.tls && <Lock className="w-3.5 h-3.5 text-success flex-shrink-0" />}
 							<HealthDot health={route.health} checkedAt={route.healthCheckedAt} size="md" />
+							<ResponseTimeBadge ms={route.responseTimeMs} />
 						</div>
 						{route.description && <p className="text-xs text-tx2 mt-1 line-clamp-2 leading-relaxed">{route.description}</p>}
 					</div>
@@ -152,11 +176,30 @@ export function RouteCard({ route, index, view, isFavorite, onToggleFavorite }: 
 				>
 					{copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
 				</button>
-				<div className="p-1.5 rounded-md bg-elevated/80 backdrop-blur-sm border border-line text-tx3">
-					<ArrowUpRight className="w-3.5 h-3.5" />
-				</div>
+				{route.url && (
+					<a
+						href={route.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						onClick={(e) => e.stopPropagation()}
+						className="p-1.5 rounded-md bg-elevated/80 backdrop-blur-sm border border-line text-tx3 hover:text-accent hover:border-accent/30 transition-colors"
+						title="Open URL"
+					>
+						<ArrowUpRight className="w-3.5 h-3.5" />
+					</a>
+				)}
 			</div>
-		</a>
+		</button>
+	);
+}
+
+function ResponseTimeBadge({ ms }: { ms?: number }) {
+	if (ms == null || ms <= 0) return null;
+	const color = ms < 200 ? "text-success" : ms < 1000 ? "text-amber-500" : "text-danger";
+	return (
+		<span className={`font-mono text-[10px] ${color} flex-shrink-0`} title={`Response time: ${ms}ms`}>
+			{ms}ms
+		</span>
 	);
 }
 

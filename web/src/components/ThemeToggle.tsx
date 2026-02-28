@@ -1,28 +1,15 @@
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
 
-export function ThemeToggle() {
-	const [dark, setDark] = useState(() => {
-		if (typeof window === "undefined") return true;
-		const saved = localStorage.getItem("routeboard-theme");
-		if (saved) return saved === "dark";
-		return true;
-	});
+interface ThemeToggleProps {
+	dark: boolean;
+	onToggle: () => void;
+}
 
-	useEffect(() => {
-		const root = document.documentElement;
-		if (dark) {
-			root.classList.add("dark");
-		} else {
-			root.classList.remove("dark");
-		}
-		localStorage.setItem("routeboard-theme", dark ? "dark" : "light");
-	}, [dark]);
-
+export function ThemeToggle({ dark, onToggle }: ThemeToggleProps) {
 	return (
 		<button
 			type="button"
-			onClick={() => setDark(!dark)}
+			onClick={onToggle}
 			className="p-2 rounded-lg border border-line bg-surface text-tx2 hover:text-tx1 hover:border-line-hover transition-colors"
 			title={dark ? "Switch to light mode" : "Switch to dark mode"}
 		>

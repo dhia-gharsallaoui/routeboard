@@ -9,9 +9,20 @@ interface RouteGridProps {
 	isFavorite: (id: string) => boolean;
 	onToggleFavorite: (id: string) => void;
 	favorites: Set<string>;
+	onSelectRoute?: (id: string) => void;
+	focusedRouteId?: string | null;
 }
 
-export function RouteGrid({ groupedRoutes, view, allRoutes, isFavorite, onToggleFavorite, favorites }: RouteGridProps) {
+export function RouteGrid({
+	groupedRoutes,
+	view,
+	allRoutes,
+	isFavorite,
+	onToggleFavorite,
+	favorites,
+	onSelectRoute,
+	focusedRouteId,
+}: RouteGridProps) {
 	const groups = Object.entries(groupedRoutes);
 	let globalIndex = 0;
 
@@ -33,7 +44,16 @@ export function RouteGrid({ groupedRoutes, view, allRoutes, isFavorite, onToggle
 						{pinnedRoutes.map((route) => {
 							const idx = globalIndex++;
 							return (
-								<RouteCard key={`pinned-${route.id}`} route={route} index={idx} view={view} isFavorite={true} onToggleFavorite={onToggleFavorite} />
+								<RouteCard
+									key={`pinned-${route.id}`}
+									route={route}
+									index={idx}
+									view={view}
+									isFavorite={true}
+									onToggleFavorite={onToggleFavorite}
+									onSelect={onSelectRoute}
+									isFocused={focusedRouteId === route.id}
+								/>
 							);
 						})}
 					</div>
@@ -60,6 +80,8 @@ export function RouteGrid({ groupedRoutes, view, allRoutes, isFavorite, onToggle
 									view={view}
 									isFavorite={isFavorite(route.id)}
 									onToggleFavorite={onToggleFavorite}
+									onSelect={onSelectRoute}
+									isFocused={focusedRouteId === route.id}
 								/>
 							);
 						})}
