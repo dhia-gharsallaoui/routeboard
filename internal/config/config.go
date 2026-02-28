@@ -27,6 +27,9 @@ type Config struct {
 	HealthEnabled  bool
 	HealthInterval time.Duration
 	HealthTimeout  time.Duration
+
+	WebhookURL    string
+	WebhookFormat string // json, slack, discord
 }
 
 func Load() *Config {
@@ -47,6 +50,8 @@ func Load() *Config {
 		HealthEnabled:  envBool("ROUTEBOARD_HEALTH_ENABLED", true),
 		HealthInterval: envDuration("ROUTEBOARD_HEALTH_INTERVAL", 30*time.Second),
 		HealthTimeout:  envDuration("ROUTEBOARD_HEALTH_TIMEOUT", 5*time.Second),
+		WebhookURL:     envStr("ROUTEBOARD_WEBHOOK_URL", ""),
+		WebhookFormat:  envStr("ROUTEBOARD_WEBHOOK_FORMAT", "json"),
 	}
 }
 

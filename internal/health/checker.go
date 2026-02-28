@@ -112,7 +112,7 @@ func (c *Checker) check(url string) model.HealthStatus {
 	if err != nil {
 		return model.HealthUnhealthy
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	elapsed := time.Since(start)
 	degradedThreshold := c.cfg.HealthTimeout / 2

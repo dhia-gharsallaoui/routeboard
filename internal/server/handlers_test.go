@@ -44,7 +44,9 @@ func TestAPIRoutes(t *testing.T) {
 	}
 
 	var routes []model.Route
-	json.NewDecoder(w.Body).Decode(&routes)
+	if err := json.NewDecoder(w.Body).Decode(&routes); err != nil {
+		t.Fatalf("decode error: %v", err)
+	}
 	if len(routes) != 2 {
 		t.Fatalf("got %d routes, want 2", len(routes))
 	}
@@ -58,7 +60,9 @@ func TestAPIRoutesFilterNamespace(t *testing.T) {
 	h.APIRoutes(w, req)
 
 	var routes []model.Route
-	json.NewDecoder(w.Body).Decode(&routes)
+	if err := json.NewDecoder(w.Body).Decode(&routes); err != nil {
+		t.Fatalf("decode error: %v", err)
+	}
 	if len(routes) != 1 {
 		t.Fatalf("got %d routes, want 1", len(routes))
 	}
@@ -75,7 +79,9 @@ func TestAPIRoutesFilterSearch(t *testing.T) {
 	h.APIRoutes(w, req)
 
 	var routes []model.Route
-	json.NewDecoder(w.Body).Decode(&routes)
+	if err := json.NewDecoder(w.Body).Decode(&routes); err != nil {
+		t.Fatalf("decode error: %v", err)
+	}
 	if len(routes) != 1 {
 		t.Fatalf("got %d routes, want 1", len(routes))
 	}
@@ -92,7 +98,9 @@ func TestAPIConfig(t *testing.T) {
 	h.APIConfig(w, req)
 
 	var resp configResponse
-	json.NewDecoder(w.Body).Decode(&resp)
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode error: %v", err)
+	}
 	if resp.Title != "My Board" {
 		t.Errorf("Title = %q, want %q", resp.Title, "My Board")
 	}

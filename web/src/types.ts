@@ -20,6 +20,7 @@ export interface Route {
 	updatedAt: string;
 	health: "unknown" | "healthy" | "degraded" | "unhealthy";
 	healthCheckedAt?: string;
+	healthHistory?: string[];
 }
 
 export interface ChangeEvent {

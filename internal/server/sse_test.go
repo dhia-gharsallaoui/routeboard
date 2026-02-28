@@ -24,7 +24,7 @@ func TestSSEBrokerBroadcast(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to connect: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if ct := resp.Header.Get("Content-Type"); ct != "text/event-stream" {
 		t.Errorf("Content-Type = %q, want text/event-stream", ct)
@@ -52,9 +52,9 @@ func TestSSEBrokerMultipleClients(t *testing.T) {
 
 	// Connect two clients
 	resp1, _ := http.Get(srv.URL)
-	defer resp1.Body.Close()
+	defer func() { _ = resp1.Body.Close() }()
 	resp2, _ := http.Get(srv.URL)
-	defer resp2.Body.Close()
+	defer func() { _ = resp2.Body.Close() }()
 
 	reader1 := bufio.NewReader(resp1.Body)
 	reader2 := bufio.NewReader(resp2.Body)
