@@ -8,8 +8,12 @@ interface ServiceIconProps {
   size?: number;
 }
 
-// Module-level cache: slug → SVG path string (persists across renders)
-const svgCache = new Map<string, string | null>();
+// Module-level cache: slug → { path, color } (persists across renders)
+interface CachedIcon {
+  path: string;
+  color?: string;
+}
+const svgCache = new Map<string, CachedIcon | null>();
 
 export function ServiceIcon({
   serviceName,
@@ -77,19 +81,18 @@ function BrandIcon({
   size: number;
   className: string;
 }) {
-  const [svgPath, setSvgPath] = useState<string | null>(
-    svgCache.get(slug) ?? fallbackPath ?? null
+  const cached = svgCache.get(slug);
+  const [icon, setIcon] = useState<CachedIcon | null>(
+    cached ?? (fallbackPath ? { path: fallbackPath } : null)
   );
 
   useEffect(() => {
-    // Already fetched (success or failure)
     if (svgCache.has(slug)) {
-      const cached = svgCache.get(slug);
-      if (cached) setSvgPath(cached);
+      const c = svgCache.get(slug);
+      if (c) setIcon(c);
       return;
     }
 
-    // Fetch from Simple Icons CDN
     let cancelled = false;
     fetch(`https://cdn.simpleicons.org/${slug}`)
       .then((res) => {
@@ -97,11 +100,15 @@ function BrandIcon({
         return res.text();
       })
       .then((svgText) => {
-        // Extract path d attribute from the SVG
-        const match = svgText.match(/<path\s[^>]*d="([^"]+)"/);
-        if (match && !cancelled) {
-          svgCache.set(slug, match[1]);
-          setSvgPath(match[1]);
+        const pathMatch = svgText.match(/<path\s[^>]*d="([^"]+)"/);
+        const fillMatch = svgText.match(/fill="(#[0-9A-Fa-f]{3,8})"/);
+        if (pathMatch && !cancelled) {
+          const entry: CachedIcon = {
+            path: pathMatch[1],
+            color: fillMatch?.[1],
+          };
+          svgCache.set(slug, entry);
+          setIcon(entry);
         } else {
           svgCache.set(slug, null);
         }
@@ -115,7 +122,7 @@ function BrandIcon({
     };
   }, [slug]);
 
-  if (!svgPath) {
+  if (!icon) {
     return <Globe size={size} className={className} />;
   }
 
@@ -125,9 +132,9 @@ function BrandIcon({
       width={size}
       height={size}
       className={className}
-      fill="currentColor"
+      fill={icon.color || "currentColor"}
     >
-      <path d={svgPath} />
+      <path d={icon.path} />
     </svg>
   );
 }
@@ -150,8 +157,8 @@ const slugMap: [string, string][] = [
   ["jenkins", "jenkins"],
   ["gitlab", "gitlab"],
   ["gitea", "gitea"],
-  ["vault", "vault"],
   ["vaultwarden", "vaultwarden"],
+  ["vault", "vault"],
   ["traefik", "traefikproxy"],
   ["nginx", "nginx"],
   ["kibana", "kibana"],
