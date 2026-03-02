@@ -72,7 +72,7 @@ func (b *SSEBroker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	clientCh := b.subscribe()
 	defer b.unsubscribe(clientCh)
 
-	fmt.Fprintf(w, "event: connected\ndata: {}\n\n")
+	_, _ = fmt.Fprintf(w, "event: connected\ndata: {}\n\n")
 	flusher.Flush()
 
 	ctx := r.Context()
@@ -84,7 +84,7 @@ func (b *SSEBroker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				return
 			}
-			fmt.Fprintf(w, "event: route-change\ndata: %s\n\n", data)
+			_, _ = fmt.Fprintf(w, "event: route-change\ndata: %s\n\n", data)
 			flusher.Flush()
 		}
 	}

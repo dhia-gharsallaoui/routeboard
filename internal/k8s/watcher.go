@@ -49,13 +49,17 @@ func NewWatcher(cfg *config.Config, clients *Clients, store *store.Store) *Watch
 	if cfg.WatchIngress {
 		w.k8sFactory = k8sinformers.NewSharedInformerFactory(clients.Kubernetes, cfg.ResyncInterval)
 		w.ingressInformer = w.k8sFactory.Networking().V1().Ingresses().Informer()
-		w.ingressInformer.AddEventHandler(w.eventHandler(string(sourceIngress)))
+		if _, err := w.ingressInformer.AddEventHandler(w.eventHandler(string(sourceIngress))); err != nil {
+			slog.Error("failed to add ingress event handler", "error", err)
+		}
 	}
 
 	if cfg.WatchHTTPRoute {
 		w.gwFactory = gwinformers.NewSharedInformerFactory(clients.GatewayAPI, cfg.ResyncInterval)
 		w.httprouteInformer = w.gwFactory.Gateway().V1().HTTPRoutes().Informer()
-		w.httprouteInformer.AddEventHandler(w.eventHandler(string(sourceHTTPRoute)))
+		if _, err := w.httprouteInformer.AddEventHandler(w.eventHandler(string(sourceHTTPRoute))); err != nil {
+			slog.Error("failed to add httproute event handler", "error", err)
+		}
 	}
 
 	return w

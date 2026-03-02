@@ -13,6 +13,7 @@ import (
 	"github.com/dhia/routeboard/internal/k8s"
 	"github.com/dhia/routeboard/internal/server"
 	"github.com/dhia/routeboard/internal/store"
+	"github.com/dhia/routeboard/internal/webhook"
 )
 
 var version = "dev"
@@ -27,7 +28,15 @@ func main() {
 	defer cancel()
 
 	broker := server.NewSSEBroker()
-	routeStore := store.New(broker.Notify)
+	listeners := []store.NotifyFunc{broker.Notify}
+
+	if cfg.WebhookURL != "" {
+		notifier := webhook.NewNotifier(cfg.WebhookURL, cfg.WebhookFormat)
+		listeners = append(listeners, notifier.HandleEvent)
+		slog.Info("webhook notifications enabled", "url", cfg.WebhookURL, "format", cfg.WebhookFormat)
+	}
+
+	routeStore := store.New(listeners...)
 
 	clients, err := k8s.NewClients(cfg.Kubeconfig)
 	if err != nil {

@@ -1,16 +1,19 @@
-import { ArrowUpRight, Check, Copy, Link, Lock } from "lucide-react";
+import { ArrowUpRight, Check, Copy, Link, Lock, Star } from "lucide-react";
 import { useState } from "react";
 import type { Route } from "../types";
 import { HealthDot } from "./HealthDot";
 import { ServiceIcon } from "./ServiceIcon";
+import { Sparkline } from "./Sparkline";
 
 interface RouteCardProps {
 	route: Route;
 	index: number;
 	view: "grid" | "list";
+	isFavorite: boolean;
+	onToggleFavorite: (id: string) => void;
 }
 
-export function RouteCard({ route, index, view }: RouteCardProps) {
+export function RouteCard({ route, index, view, isFavorite, onToggleFavorite }: RouteCardProps) {
 	const [copied, setCopied] = useState(false);
 
 	const truncatedUrl = route.url ? route.url.replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
@@ -24,6 +27,12 @@ export function RouteCard({ route, index, view }: RouteCardProps) {
 		});
 	};
 
+	const handleStar = (e: React.MouseEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		onToggleFavorite(route.id);
+	};
+
 	if (view === "list") {
 		return (
 			<a
@@ -33,6 +42,15 @@ export function RouteCard({ route, index, view }: RouteCardProps) {
 				className="animate-card-enter group flex items-center gap-4 px-4 py-3 bg-card border border-line rounded-lg hover:border-line-hover transition-all duration-200 hover:shadow-[var(--shadow-card-hover)]"
 				style={{ animationDelay: `${index * 30}ms` }}
 			>
+				<button
+					type="button"
+					onClick={handleStar}
+					className={`flex-shrink-0 transition-colors ${isFavorite ? "text-amber-400" : "text-tx3 opacity-0 group-hover:opacity-100 hover:text-amber-400"}`}
+					title={isFavorite ? "Unpin" : "Pin to top"}
+				>
+					<Star className="w-3.5 h-3.5" fill={isFavorite ? "currentColor" : "none"} />
+				</button>
+
 				<div className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-tx2 group-hover:text-accent transition-colors">
 					<ServiceIcon serviceName={route.serviceName} resourceName={route.name} size={20} />
 				</div>
@@ -42,6 +60,7 @@ export function RouteCard({ route, index, view }: RouteCardProps) {
 						<span className="font-medium text-tx1 truncate text-sm">{route.title}</span>
 						{route.tls && <Lock className="w-3 h-3 text-success flex-shrink-0" />}
 						<HealthDot health={route.health} checkedAt={route.healthCheckedAt} />
+						{route.healthHistory && <Sparkline history={route.healthHistory} />}
 					</div>
 					{route.description && <p className="text-xs text-tx3 truncate mt-0.5">{route.description}</p>}
 				</div>
@@ -82,7 +101,7 @@ export function RouteCard({ route, index, view }: RouteCardProps) {
 			<div className="h-[2px] bg-gradient-to-r from-transparent via-line to-transparent transition-all duration-300 group-hover:via-accent group-hover:shadow-[0_0_16px_var(--accent-glow)]" />
 
 			<div className="p-5 flex flex-col flex-1">
-				{/* Header: icon + title + TLS */}
+				{/* Header: icon + title + TLS + health */}
 				<div className="flex items-start gap-3.5 mb-3">
 					<div className="w-10 h-10 rounded-lg bg-elevated border border-line flex items-center justify-center text-tx2 group-hover:text-accent group-hover:border-accent/20 transition-all duration-300 flex-shrink-0">
 						<ServiceIcon serviceName={route.serviceName} resourceName={route.name} size={22} />
@@ -97,13 +116,16 @@ export function RouteCard({ route, index, view }: RouteCardProps) {
 					</div>
 				</div>
 
-				{/* URL */}
-				{truncatedUrl && (
-					<div className="flex items-center gap-1.5 mb-4 mt-auto">
-						<Link className="w-3 h-3 text-tx3 flex-shrink-0" />
-						<span className="font-mono text-xs text-tx3 truncate group-hover:text-accent transition-colors">{truncatedUrl}</span>
-					</div>
-				)}
+				{/* URL + sparkline */}
+				<div className="flex items-center gap-2 mb-4 mt-auto">
+					{truncatedUrl && (
+						<div className="flex items-center gap-1.5 flex-1 min-w-0">
+							<Link className="w-3 h-3 text-tx3 flex-shrink-0" />
+							<span className="font-mono text-xs text-tx3 truncate group-hover:text-accent transition-colors">{truncatedUrl}</span>
+						</div>
+					)}
+					{route.healthHistory && route.healthHistory.length > 1 && <Sparkline history={route.healthHistory} />}
+				</div>
 
 				{/* Badges */}
 				<div className="flex items-center gap-1.5 flex-wrap">
@@ -112,8 +134,16 @@ export function RouteCard({ route, index, view }: RouteCardProps) {
 				</div>
 			</div>
 
-			{/* Copy + arrow on hover */}
+			{/* Star + Copy + arrow on hover */}
 			<div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+				<button
+					type="button"
+					onClick={handleStar}
+					className={`p-1.5 rounded-md bg-elevated/80 backdrop-blur-sm border border-line transition-colors ${isFavorite ? "text-amber-400" : "text-tx3 hover:text-amber-400"}`}
+					title={isFavorite ? "Unpin" : "Pin to top"}
+				>
+					<Star className="w-3.5 h-3.5" fill={isFavorite ? "currentColor" : "none"} />
+				</button>
 				<button
 					type="button"
 					onClick={handleCopy}

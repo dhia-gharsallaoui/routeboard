@@ -47,7 +47,7 @@ func (s *Server) Run(ctx context.Context) error {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		s.httpSrv.Shutdown(shutdownCtx)
+		_ = s.httpSrv.Shutdown(shutdownCtx)
 	}()
 
 	slog.Info("starting HTTP server", "addr", s.httpSrv.Addr)

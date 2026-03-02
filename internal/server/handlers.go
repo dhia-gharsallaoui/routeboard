@@ -50,12 +50,12 @@ func (h *Handlers) APIRoutes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(routes)
+	_ = json.NewEncoder(w).Encode(routes)
 }
 
 func (h *Handlers) APIConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(configResponse{
+	_ = json.NewEncoder(w).Encode(configResponse{
 		Title:      h.cfg.Title,
 		Namespaces: h.store.Namespaces(),
 	})
@@ -63,5 +63,5 @@ func (h *Handlers) APIConfig(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) Health(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("ok"))
+	_, _ = w.Write([]byte("ok"))
 }

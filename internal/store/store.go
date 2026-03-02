@@ -18,22 +18,36 @@ const (
 )
 
 type ChangeEvent struct {
-	Type  ChangeType   `json:"type"`
-	Route *model.Route `json:"route"`
+	Type           ChangeType         `json:"type"`
+	Route          *model.Route       `json:"route"`
+	PreviousHealth model.HealthStatus `json:"previousHealth,omitempty"`
 }
 
 type NotifyFunc func(event ChangeEvent)
 
 type Store struct {
-	mu       sync.RWMutex
-	routes   map[string]*model.Route
-	notifyFn NotifyFunc
+	mu        sync.RWMutex
+	routes    map[string]*model.Route
+	listeners []NotifyFunc
 }
 
-func New(notifyFn NotifyFunc) *Store {
+func New(listeners ...NotifyFunc) *Store {
+	// Filter out nil listeners
+	valid := make([]NotifyFunc, 0, len(listeners))
+	for _, fn := range listeners {
+		if fn != nil {
+			valid = append(valid, fn)
+		}
+	}
 	return &Store{
-		routes:   make(map[string]*model.Route),
-		notifyFn: notifyFn,
+		routes:    make(map[string]*model.Route),
+		listeners: valid,
+	}
+}
+
+func (s *Store) notify(event ChangeEvent) {
+	for _, fn := range s.listeners {
+		fn(event)
 	}
 }
 
@@ -43,12 +57,10 @@ func (s *Store) Set(route *model.Route) {
 	s.routes[route.ID] = route
 	s.mu.Unlock()
 
-	if s.notifyFn != nil {
-		if exists && routeChanged(existing, route) {
-			s.notifyFn(ChangeEvent{Type: ChangeUpdated, Route: route})
-		} else if !exists {
-			s.notifyFn(ChangeEvent{Type: ChangeAdded, Route: route})
-		}
+	if exists && routeChanged(existing, route) {
+		s.notify(ChangeEvent{Type: ChangeUpdated, Route: route})
+	} else if !exists {
+		s.notify(ChangeEvent{Type: ChangeAdded, Route: route})
 	}
 }
 
@@ -58,8 +70,8 @@ func (s *Store) Delete(id string) {
 	delete(s.routes, id)
 	s.mu.Unlock()
 
-	if exists && s.notifyFn != nil {
-		s.notifyFn(ChangeEvent{Type: ChangeDeleted, Route: route})
+	if exists {
+		s.notify(ChangeEvent{Type: ChangeDeleted, Route: route})
 	}
 }
 
@@ -97,14 +109,21 @@ func (s *Store) List() []*model.Route {
 func (s *Store) UpdateHealth(id string, status model.HealthStatus, checkedAt time.Time) {
 	s.mu.Lock()
 	route, exists := s.routes[id]
+	var previousHealth model.HealthStatus
 	if exists {
+		previousHealth = route.Health
 		route.Health = status
 		route.HealthCheckedAt = checkedAt
+		// Append to history ring buffer
+		route.HealthHistory = append(route.HealthHistory, status)
+		if len(route.HealthHistory) > model.HealthHistoryMax {
+			route.HealthHistory = route.HealthHistory[len(route.HealthHistory)-model.HealthHistoryMax:]
+		}
 	}
 	s.mu.Unlock()
 
-	if exists && s.notifyFn != nil {
-		s.notifyFn(ChangeEvent{Type: ChangeHealth, Route: route})
+	if exists {
+		s.notify(ChangeEvent{Type: ChangeHealth, Route: route, PreviousHealth: previousHealth})
 	}
 }
 

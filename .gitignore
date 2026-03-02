@@ -32,5 +32,8 @@ Thumbs.db
 # Embedded build artifacts
 internal/server/dist/
 
+# Dev scripts
+scripts/deploy-dev.sh
+
 # Build
 *.log
