@@ -172,6 +172,37 @@ func TestStoreNamespaces(t *testing.T) {
 	}
 }
 
+func TestStoreUpdateHealthResponseTime(t *testing.T) {
+	s := New(nil)
+	s.Set(newRoute("r1", "App", "default", 0))
+
+	s.UpdateHealth("r1", model.HealthHealthy, time.Now(), 42)
+
+	r, _ := s.Get("r1")
+	if r.ResponseTimeMs != 42 {
+		t.Errorf("got ResponseTimeMs %d, want 42", r.ResponseTimeMs)
+	}
+	if len(r.ResponseTimeHistory) != 1 || r.ResponseTimeHistory[0] != 42 {
+		t.Errorf("got ResponseTimeHistory %v, want [42]", r.ResponseTimeHistory)
+	}
+
+	// Fill beyond max to test ring buffer (already have 1 entry from above)
+	for i := range model.HealthHistoryMax + 5 {
+		s.UpdateHealth("r1", model.HealthHealthy, time.Now(), int64(i))
+	}
+
+	r, _ = s.Get("r1")
+	if len(r.ResponseTimeHistory) != model.HealthHistoryMax {
+		t.Errorf("got %d history entries, want %d", len(r.ResponseTimeHistory), model.HealthHistoryMax)
+	}
+	// Total entries inserted: 1 (42) + HealthHistoryMax+5 = HealthHistoryMax+6
+	// After capping to HealthHistoryMax, oldest 6 are dropped: 42, 0, 1, 2, 3, 4
+	// So first remaining = 5
+	if r.ResponseTimeHistory[0] != 5 {
+		t.Errorf("oldest entry = %d, want 5", r.ResponseTimeHistory[0])
+	}
+}
+
 func TestStoreGroupedRoutes(t *testing.T) {
 	s := New(nil)
 	s.Set(newRoute("r1", "A", "infra", 0))

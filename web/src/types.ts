@@ -21,6 +21,8 @@ export interface Route {
 	health: "unknown" | "healthy" | "degraded" | "unhealthy";
 	healthCheckedAt?: string;
 	healthHistory?: string[];
+	responseTimeMs?: number;
+	responseTimeHistory?: number[];
 }
 
 export interface ChangeEvent {

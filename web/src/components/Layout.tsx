@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { Command } from "lucide-react";
+import type { ReactNode, RefObject } from "react";
 import type { Route } from "../types";
 import { HealthFilter } from "./HealthFilter";
 import { NamespaceFilter } from "./NamespaceFilter";
@@ -20,6 +21,10 @@ interface LayoutProps {
 	onHealthFilterChange: (value: string) => void;
 	view: "grid" | "list";
 	onViewChange: (view: "grid" | "list") => void;
+	dark: boolean;
+	onToggleTheme: () => void;
+	searchInputRef: RefObject<HTMLInputElement | null>;
+	onOpenCommandPalette: () => void;
 	children: ReactNode;
 }
 
@@ -37,6 +42,10 @@ export function Layout({
 	onHealthFilterChange,
 	view,
 	onViewChange,
+	dark,
+	onToggleTheme,
+	searchInputRef,
+	onOpenCommandPalette,
 	children,
 }: LayoutProps) {
 	return (
@@ -63,18 +72,27 @@ export function Layout({
 						{/* Right: controls */}
 						<div className="flex items-center gap-2">
 							<div className="hidden sm:block w-64">
-								<SearchBar value={search} onChange={onSearchChange} />
+								<SearchBar ref={searchInputRef} value={search} onChange={onSearchChange} />
 							</div>
+							<button
+								type="button"
+								onClick={onOpenCommandPalette}
+								className="hidden sm:flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-line bg-surface text-tx3 hover:text-tx2 hover:border-line-hover transition-colors text-[11px] font-mono"
+								title="Command palette"
+							>
+								<Command className="w-3 h-3" />
+								<span>K</span>
+							</button>
 							<NamespaceFilter namespaces={namespaces} value={namespace} onChange={onNamespaceChange} />
 							<HealthFilter value={healthFilter} onChange={onHealthFilterChange} routes={allRoutes} />
 							<ViewToggle view={view} onChange={onViewChange} />
-							<ThemeToggle />
+							<ThemeToggle dark={dark} onToggle={onToggleTheme} />
 						</div>
 					</div>
 
 					{/* Mobile search */}
 					<div className="sm:hidden pb-3">
-						<SearchBar value={search} onChange={onSearchChange} />
+						<SearchBar ref={searchInputRef} value={search} onChange={onSearchChange} />
 					</div>
 				</div>
 			</header>

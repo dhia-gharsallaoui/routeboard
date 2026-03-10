@@ -106,7 +106,7 @@ func (s *Store) List() []*model.Route {
 	return routes
 }
 
-func (s *Store) UpdateHealth(id string, status model.HealthStatus, checkedAt time.Time) {
+func (s *Store) UpdateHealth(id string, status model.HealthStatus, checkedAt time.Time, responseTimeMs int64) {
 	s.mu.Lock()
 	route, exists := s.routes[id]
 	var previousHealth model.HealthStatus
@@ -114,10 +114,16 @@ func (s *Store) UpdateHealth(id string, status model.HealthStatus, checkedAt tim
 		previousHealth = route.Health
 		route.Health = status
 		route.HealthCheckedAt = checkedAt
-		// Append to history ring buffer
+		route.ResponseTimeMs = responseTimeMs
+		// Append to health history ring buffer
 		route.HealthHistory = append(route.HealthHistory, status)
 		if len(route.HealthHistory) > model.HealthHistoryMax {
 			route.HealthHistory = route.HealthHistory[len(route.HealthHistory)-model.HealthHistoryMax:]
+		}
+		// Append to response time history ring buffer
+		route.ResponseTimeHistory = append(route.ResponseTimeHistory, responseTimeMs)
+		if len(route.ResponseTimeHistory) > model.HealthHistoryMax {
+			route.ResponseTimeHistory = route.ResponseTimeHistory[len(route.ResponseTimeHistory)-model.HealthHistoryMax:]
 		}
 	}
 	s.mu.Unlock()

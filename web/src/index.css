@@ -147,6 +147,32 @@ body::before {
 	animation: pulse-dot 2s ease-in-out infinite;
 }
 
+@keyframes slide-in-right {
+	from {
+		transform: translateX(100%);
+	}
+	to {
+		transform: translateX(0);
+	}
+}
+
+@keyframes overlay-fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.animate-slide-in-right {
+	animation: slide-in-right 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-overlay-fade-in {
+	animation: overlay-fade-in 0.2s ease both;
+}
+
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar {
 	width: 6px;
