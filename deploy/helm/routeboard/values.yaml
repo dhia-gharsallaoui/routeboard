@@ -1,44 +1,117 @@
+# -- Number of RouteBoard replicas to run.
 replicaCount: 1
 
+# -- Number of old ReplicaSets to retain for rollback.
+revisionHistoryLimit: 3
+
+# -- Override the generated chart name portion of resource names.
+nameOverride: ""
+# -- Override the fully-qualified release name used for resource names.
+fullnameOverride: ""
+
 image:
+  # -- Container image repository.
   repository: ghcr.io/dhia-gharsallaoui/routeboard
+  # -- Image pull policy.
   pullPolicy: IfNotPresent
+  # -- Image tag. Defaults to the chart `appVersion` when empty.
   tag: ""
 
-serviceAccount:
-  create: true
-  name: ""
-  annotations: {}
+# -- Secrets for pulling the image from a private registry.
+imagePullSecrets: []
+  # - name: my-registry-secret
 
-rbac:
+# -- Extra annotations applied to the Pod template.
+podAnnotations: {}
+# -- Extra labels applied to the Pod template.
+podLabels: {}
+
+serviceAccount:
+  # -- Create a ServiceAccount for RouteBoard.
   create: true
+  # -- Name of the ServiceAccount to use. Generated from the fullname when empty.
+  name: ""
+  # -- Annotations to add to the ServiceAccount.
+  annotations: {}
+  # -- Mount the API token. RouteBoard calls the Kubernetes API, so this must stay true.
+  automountServiceAccountToken: true
+
+# Gateway API support. Opt-in; requires the gateway.networking.k8s.io/v1 CRDs and a
+# Gateway to attach to.
+gatewayAPI:
+  # -- Expose RouteBoard's own UI through a Gateway API HTTPRoute (parallel to ingress).
+  # This only controls the chart's own HTTPRoute — discovery of other HTTPRoutes is
+  # `config.watchHTTPRoute`.
+  enabled: false
+
+  # -- Fail rendering if `gatewayAPI.enabled` but the Gateway API CRDs
+  # (`gateway.networking.k8s.io/v1`) are absent from the cluster. Set to false for
+  # offline `helm template`/CI (or pass `--api-versions gateway.networking.k8s.io/v1`).
+  verifyCRD: true
+
+  httproute:
+    # -- Annotations to add to the HTTPRoute.
+    annotations: {}
+    # -- Gateway(s) to attach to. At least one `parentRefs[].name` is required when
+    # `gatewayAPI.enabled` is true. `namespace` defaults to the release namespace.
+    parentRefs:
+      - name: ""
+        # namespace: ""   # omit to use the release namespace
+        # sectionName: "" # target a specific Gateway listener
+        # port: 443
+    # -- Hostnames the route matches, e.g. `["routeboard.example.com"]`.
+    hostnames: []
+    # -- Route match rules. Defaults to a PathPrefix match on `/`.
+    matches:
+      - path:
+          type: PathPrefix
+          value: /
 
 service:
+  # -- Service type.
   type: ClusterIP
+  # -- Service port.
   port: 80
+  # -- Annotations to add to the Service.
+  annotations: {}
 
 ingress:
+  # -- Expose RouteBoard through a networking.k8s.io Ingress.
   enabled: false
+  # -- IngressClass name.
   className: ""
+  # -- Annotations to add to the Ingress.
   annotations: {}
+  # -- Ingress host/path rules.
   hosts:
     - host: routeboard.local
       paths:
         - path: /
           pathType: Prefix
+  # -- Ingress TLS configuration.
   tls: []
 
 config:
+  # -- HTTP server port (container port).
   port: 8080
+  # -- Watch Ingress resources. Also gates the ingresses RBAC rule.
   watchIngress: true
+  # -- Watch HTTPRoute resources. Also gates the httproutes RBAC rule.
   watchHTTPRoute: true
+  # -- Comma-separated namespaces to exclude from discovery.
   namespaceDenylist: "kube-system,kube-public,kube-node-lease"
+  # -- Comma-separated namespaces to restrict discovery to (empty = all).
   namespaceAllowlist: ""
+  # -- Label selector to filter discovered routes (empty = all).
   labelSelector: ""
+  # -- Dashboard title.
   title: "RouteBoard"
+  # -- Log level: debug, info, warn, or error.
   logLevel: "info"
+  # -- Informer resync interval.
   resyncInterval: "30m"
 
+# -- Container resource requests and limits.
 resources:
   limits:
     cpu: 100m
@@ -47,11 +120,77 @@ resources:
     cpu: 50m
     memory: 64Mi
 
-securityContext:
+# -- Liveness probe for the container.
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+# -- Readiness probe for the container.
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 3
+  periodSeconds: 5
+
+tmpDir:
+  # -- Size limit for the writable `/tmp` emptyDir (required because the root FS is
+  # read-only). Bounded so it cannot exhaust node ephemeral storage.
+  sizeLimit: 16Mi
+
+# -- Pod-level security context. `readOnlyRootFilesystem` is intentionally NOT here —
+# it is a container-only field (see `securityContext`).
+podSecurityContext:
   runAsNonRoot: true
   runAsUser: 65534
-  readOnlyRootFilesystem: true
+  seccompProfile:
+    type: RuntimeDefault
 
+# -- Container-level security context.
+securityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+podDisruptionBudget:
+  # -- Create a PodDisruptionBudget. Only effective with `replicaCount` > 1.
+  enabled: false
+  # -- Minimum available pods during a disruption. Mutually exclusive with `maxUnavailable`.
+  minAvailable: 1
+  # -- Maximum unavailable pods during a disruption. Set this OR `minAvailable`, not both.
+  maxUnavailable: ""
+
+# -- PriorityClass name for the pod.
+priorityClassName: ""
+
+# -- Topology spread constraints for pod scheduling (multi-replica zone/node spreading).
+topologySpreadConstraints: []
+
+# -- Node selector for pod scheduling.
 nodeSelector: {}
+# -- Tolerations for pod scheduling.
 tolerations: []
+# -- Affinity rules for pod scheduling.
 affinity: {}
+
+# -- Extra raw manifests to deploy alongside the chart. Each item may be a map or a
+# string and is rendered through `tpl`, so it can reference values and the release
+# (e.g. `{{ include "routeboard.fullname" . }}`). Useful for Gateway API traffic
+# policies, NetworkPolicies, or any resource the chart doesn't template natively.
+extraManifests: []
+  # - apiVersion: gateway.kgateway.dev/v1alpha1
+  #   kind: TrafficPolicy
+  #   metadata:
+  #     name: '{{ include "routeboard.fullname" . }}'
+  #   spec:
+  #     targetRefs:
+  #       - group: gateway.networking.k8s.io
+  #         kind: HTTPRoute
+  #         name: '{{ include "routeboard.fullname" . }}'
+  #     retry:
+  #       attempts: 3

@@ -1,4 +1,3 @@
-{{- if .Values.rbac.create -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -6,10 +5,13 @@ metadata:
   labels:
     {{- include "routeboard.labels" . | nindent 4 }}
 rules:
+  {{- if .Values.config.watchIngress }}
   - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses"]
     verbs: ["get", "list", "watch"]
+  {{- end }}
+  {{- if .Values.config.watchHTTPRoute }}
   - apiGroups: ["gateway.networking.k8s.io"]
     resources: ["httproutes"]
     verbs: ["get", "list", "watch"]
-{{- end }}
+  {{- end }}

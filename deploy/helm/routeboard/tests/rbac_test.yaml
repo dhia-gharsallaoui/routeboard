@@ -1,0 +1,51 @@
+suite: ClusterRole RBAC gated by watch flags
+templates:
+  - templates/clusterrole.yaml
+tests:
+  - it: grants both ingresses and httproutes by default
+    asserts:
+      - hasDocuments:
+          count: 1
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["networking.k8s.io"]
+            resources: ["ingresses"]
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["gateway.networking.k8s.io"]
+            resources: ["httproutes"]
+            verbs: ["get", "list", "watch"]
+
+  - it: drops the httproutes rule when watchHTTPRoute is false
+    set:
+      config:
+        watchHTTPRoute: false
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["gateway.networking.k8s.io"]
+            resources: ["httproutes"]
+            verbs: ["get", "list", "watch"]
+
+  - it: drops the ingresses rule when watchIngress is false
+    set:
+      config:
+        watchIngress: false
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["networking.k8s.io"]
+            resources: ["ingresses"]
+            verbs: ["get", "list", "watch"]
+
+  - it: always renders the ClusterRole (RBAC is required for RouteBoard to run)
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ClusterRole

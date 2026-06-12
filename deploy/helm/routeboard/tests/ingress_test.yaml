@@ -1,0 +1,97 @@
+suite: Ingress
+templates:
+  - templates/ingress.yaml
+tests:
+  - it: renders nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders an Ingress when enabled
+    set:
+      ingress:
+        enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - isAPIVersion:
+          of: networking.k8s.io/v1
+
+  - it: omits ingressClassName when className is empty
+    set:
+      ingress:
+        enabled: true
+        className: ""
+    asserts:
+      - notExists:
+          path: spec.ingressClassName
+
+  - it: sets ingressClassName when provided
+    set:
+      ingress:
+        enabled: true
+        className: nginx
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: renders host rules with the backend wired to the chart Service on the http port
+    set:
+      ingress:
+        enabled: true
+        hosts:
+          - host: routeboard.example.com
+            paths:
+              - path: /
+                pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: routeboard.example.com
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: RELEASE-NAME-routeboard
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.name
+          value: http
+
+  - it: omits the tls block by default
+    set:
+      ingress:
+        enabled: true
+    asserts:
+      - notExists:
+          path: spec.tls
+
+  - it: renders tls when configured
+    set:
+      ingress:
+        enabled: true
+        tls:
+          - secretName: routeboard-tls
+            hosts:
+              - routeboard.example.com
+    asserts:
+      - equal:
+          path: spec.tls[0].secretName
+          value: routeboard-tls
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: routeboard.example.com
+
+  - it: adds annotations when set
+    set:
+      ingress:
+        enabled: true
+        annotations:
+          cert-manager.io/cluster-issuer: letsencrypt
+    asserts:
+      - equal:
+          path: metadata.annotations["cert-manager.io/cluster-issuer"]
+          value: letsencrypt

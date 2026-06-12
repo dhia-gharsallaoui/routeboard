@@ -1,0 +1,77 @@
+suite: securityContext placement and hardening
+templates:
+  - templates/deployment.yaml
+tests:
+  - it: applies podSecurityContext at the pod level (no readOnlyRootFilesystem there)
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 65534
+      - equal:
+          path: spec.template.spec.securityContext.seccompProfile.type
+          value: RuntimeDefault
+      - notExists:
+          path: spec.template.spec.securityContext.readOnlyRootFilesystem
+
+  - it: applies hardening at the container level
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+          value: false
+      - contains:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          content: ALL
+
+  - it: mounts a bounded writable /tmp emptyDir so a read-only root FS does not break the app
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: tmp
+            mountPath: /tmp
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: tmp
+            emptyDir:
+              sizeLimit: 16Mi
+
+  - it: sets revisionHistoryLimit and a bounded tmp volume, with no startupProbe
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 3
+      - equal:
+          path: spec.template.spec.volumes[0].emptyDir.sizeLimit
+          value: 16Mi
+      - notExists:
+          path: spec.template.spec.containers[0].startupProbe
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /health
+
+  - it: renders pod annotations, pod labels and imagePullSecrets when set
+    set:
+      podAnnotations:
+        prometheus.io/scrape: "true"
+      podLabels:
+        team: platform
+      imagePullSecrets:
+        - name: regcred
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["prometheus.io/scrape"]
+          value: "true"
+      - equal:
+          path: spec.template.metadata.labels.team
+          value: platform
+      - contains:
+          path: spec.template.spec.imagePullSecrets
+          content:
+            name: regcred

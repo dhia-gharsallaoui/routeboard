@@ -1,0 +1,20 @@
+# Patterns to ignore when building Helm packages.
+.git/
+.gitignore
+.vscode/
+.idea/
+*.tmproj
+.DS_Store
+*.swp
+*.bak
+*.orig
+# Project artifacts that don't belong in the chart package
+AUDIT-BACKLOG.md
+docs/
+ci/
+*.tgz
+# helm-unittest suites (not the in-cluster `helm test` hook under templates/tests/)
+tests/
+.lint/
+# helm-docs template (README.md is generated from it and ships)
+README.md.gotmpl

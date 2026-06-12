@@ -1,0 +1,97 @@
+suite: Deployment (image, env, scheduling)
+templates:
+  - templates/deployment.yaml
+tests:
+  - it: defaults the image tag to the chart appVersion
+    chart:
+      appVersion: 9.9.9
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/dhia-gharsallaoui/routeboard:9.9.9
+
+  - it: uses image.tag when set
+    set:
+      image:
+        tag: edge
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/dhia-gharsallaoui/routeboard:edge
+
+  - it: maps config values to ROUTEBOARD_* env vars
+    set:
+      config:
+        watchIngress: false
+        watchHTTPRoute: true
+        title: My Board
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ROUTEBOARD_WATCH_INGRESS
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ROUTEBOARD_TITLE
+            value: "My Board"
+
+  - it: omits optional env vars when their values are empty
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ROUTEBOARD_NAMESPACE_ALLOWLIST
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ROUTEBOARD_LABEL_SELECTOR
+
+  - it: renders optional env vars when set
+    set:
+      config:
+        namespaceAllowlist: team-a,team-b
+        labelSelector: app=web
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ROUTEBOARD_NAMESPACE_ALLOWLIST
+            value: team-a,team-b
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ROUTEBOARD_LABEL_SELECTOR
+            value: app=web
+
+  - it: renders priorityClassName and topologySpreadConstraints when set
+    set:
+      priorityClassName: high-priority
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: high-priority
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].topologyKey
+          value: kubernetes.io/hostname
+
+  - it: omits priorityClassName and topologySpreadConstraints by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.priorityClassName
+      - notExists:
+          path: spec.template.spec.topologySpreadConstraints
+
+  - it: defaults to a single replica and uses the selector labels
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: routeboard

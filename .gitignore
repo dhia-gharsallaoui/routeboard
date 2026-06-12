@@ -37,3 +37,6 @@ scripts/deploy-dev.sh
 
 # Build
 *.log
+
+# Helm local overrides
+values-local.yaml

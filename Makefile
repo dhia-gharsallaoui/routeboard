@@ -1,6 +1,8 @@
-.PHONY: build run test lint clean dev web-dev web-build docker-build helm-lint helm-template
+.PHONY: build run test lint clean dev web-dev web-build docker-build \
+        helm-deps helm-lint helm-template helm-unittest helm-package helm-test helm-docs
 
 BINARY  := routeboard
+CHART   := deploy/helm/routeboard
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 LDFLAGS := -X main.version=$(VERSION)
 GOFLAGS := -trimpath -ldflags "$(LDFLAGS)"
@@ -39,11 +41,27 @@ docker-build:
 	docker build -t $(BINARY):$(VERSION) .
 
 ## Helm
+
 helm-lint:
-	helm lint deploy/helm/routeboard
+	helm lint $(CHART)
 
 helm-template:
-	helm template routeboard deploy/helm/routeboard
+	helm template $(BINARY) $(CHART)
+
+## Run helm-unittest suites (requires the helm-unittest plugin)
+helm-unittest:
+	helm unittest $(CHART)
+
+## Package the chart into dist/
+helm-package: helm-lint
+	helm package $(CHART) -d dist/
+
+## CI gate: lint + render + unit-test the chart
+helm-test: helm-lint helm-template helm-unittest
+
+## Generate the chart README from values.yaml comments (requires helm-docs)
+helm-docs:
+	helm-docs --chart-search-root=$(CHART) --template-files=README.md.gotmpl
 
 ## Clean
 clean:

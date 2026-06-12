@@ -1,0 +1,104 @@
+suite: HTTPRoute (Gateway API exposure)
+templates:
+  - templates/httproute.yaml
+# Simulate a cluster where the Gateway API CRDs are installed.
+capabilities:
+  apiVersions:
+    - gateway.networking.k8s.io/v1
+tests:
+  - it: renders nothing when gatewayAPI is disabled (default)
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders an HTTPRoute when gatewayAPI is enabled with a parentRef
+    set:
+      gatewayAPI:
+        enabled: true
+        httproute:
+          parentRefs:
+            - name: my-gateway
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HTTPRoute
+      - isAPIVersion:
+          of: gateway.networking.k8s.io/v1
+
+  - it: defaults parentRef namespace to the release namespace
+    release:
+      namespace: routeboard
+    set:
+      gatewayAPI:
+        enabled: true
+        httproute:
+          parentRefs:
+            - name: my-gateway
+    asserts:
+      - equal:
+          path: spec.parentRefs[0].namespace
+          value: routeboard
+
+  - it: honors an explicit parentRef namespace, sectionName and port
+    set:
+      gatewayAPI:
+        enabled: true
+        httproute:
+          parentRefs:
+            - name: my-gateway
+              namespace: gateways
+              sectionName: https
+              port: 443
+    asserts:
+      - equal:
+          path: spec.parentRefs[0].namespace
+          value: gateways
+      - equal:
+          path: spec.parentRefs[0].sectionName
+          value: https
+      - equal:
+          path: spec.parentRefs[0].port
+          value: 443
+
+  - it: wires backendRefs to the chart Service on the service port
+    set:
+      service:
+        port: 80
+      gatewayAPI:
+        enabled: true
+        httproute:
+          parentRefs:
+            - name: my-gateway
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: RELEASE-NAME-routeboard
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 80
+
+  - it: renders configured hostnames
+    set:
+      gatewayAPI:
+        enabled: true
+        httproute:
+          parentRefs:
+            - name: my-gateway
+          hostnames:
+            - routeboard.example.com
+    asserts:
+      - equal:
+          path: spec.hostnames[0]
+          value: routeboard.example.com
+
+  - it: fails when enabled without a parentRef name
+    set:
+      gatewayAPI:
+        enabled: true
+        httproute:
+          parentRefs:
+            - name: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: gatewayAPI.httproute.parentRefs[].name is required when gatewayAPI.enabled
