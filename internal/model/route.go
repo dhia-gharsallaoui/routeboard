@@ -31,6 +31,9 @@ type Route struct {
 	CreatedAt   time.Time         `json:"createdAt"`
 	UpdatedAt   time.Time         `json:"updatedAt"`
 
+	// MonitorDisabled keeps the route listed but skips health checks. Set via the
+	// routeboard.io/health: "false" annotation.
+	MonitorDisabled     bool           `json:"monitorDisabled,omitempty"`
 	Health              HealthStatus   `json:"health"`
 	HealthCheckedAt     time.Time      `json:"healthCheckedAt,omitempty"`
 	HealthHistory       []HealthStatus `json:"healthHistory,omitempty"`
