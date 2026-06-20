@@ -112,6 +112,7 @@ metadata:
     routeboard.io/order: "10"                    # Sort order within group
     routeboard.io/hidden: "true"                 # Hide from dashboard
     routeboard.io/url: "https://custom.url"      # Override computed URL
+    routeboard.io/health: "false"                # Keep listed but skip health checks
 ```
 
 ## Architecture

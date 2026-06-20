@@ -66,10 +66,10 @@ func (c *Checker) Run(ctx context.Context) {
 func (c *Checker) checkAll() {
 	routes := c.store.ListAll()
 
-	// Filter to routes with URLs
+	// Filter to routes with URLs that have monitoring enabled
 	var targets []*model.Route
 	for _, r := range routes {
-		if r.URL != "" {
+		if r.URL != "" && !r.MonitorDisabled {
 			targets = append(targets, r)
 		}
 	}

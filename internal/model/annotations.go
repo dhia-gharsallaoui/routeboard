@@ -28,4 +28,10 @@ func ApplyAnnotations(r *Route, annotations map[string]string) {
 	if v, ok := annotations[AnnotationPrefix+"url"]; ok {
 		r.URL = v
 	}
+	// routeboard.io/health: "false" keeps the route listed but disables health checks.
+	if v, ok := annotations[AnnotationPrefix+"health"]; ok {
+		if enabled, err := strconv.ParseBool(v); err == nil {
+			r.MonitorDisabled = !enabled
+		}
+	}
 }
