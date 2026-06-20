@@ -21,8 +21,9 @@ type Config struct {
 	WatchIngress   bool
 	WatchHTTPRoute bool
 
-	Title    string
-	LogLevel string
+	Title     string
+	LogLevel  string
+	LogFormat string // text, json
 
 	HealthEnabled  bool
 	HealthInterval time.Duration
@@ -47,6 +48,7 @@ func Load() *Config {
 		WatchHTTPRoute: envBool("ROUTEBOARD_WATCH_HTTPROUTE", true),
 		Title:          envStr("ROUTEBOARD_TITLE", "RouteBoard"),
 		LogLevel:       envStr("ROUTEBOARD_LOG_LEVEL", "info"),
+		LogFormat:      envStr("ROUTEBOARD_LOG_FORMAT", "text"),
 		HealthEnabled:  envBool("ROUTEBOARD_HEALTH_ENABLED", true),
 		HealthInterval: envDuration("ROUTEBOARD_HEALTH_INTERVAL", 30*time.Second),
 		HealthTimeout:  envDuration("ROUTEBOARD_HEALTH_TIMEOUT", 5*time.Second),
