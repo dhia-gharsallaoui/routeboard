@@ -97,6 +97,7 @@ All configuration is via environment variables. Everything has sensible defaults
 | `ROUTEBOARD_HEALTH_INTERVAL` | `30s` | Health check interval |
 | `ROUTEBOARD_HEALTH_TIMEOUT` | `5s` | Health check timeout |
 | `ROUTEBOARD_LOG_LEVEL` | `info` | Log level (debug/info/warn/error) |
+| `ROUTEBOARD_LOG_FORMAT` | `text` | Log output format (text/json) |
 
 ## Annotations
 

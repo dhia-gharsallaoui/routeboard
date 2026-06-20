@@ -20,7 +20,7 @@ var version = "dev"
 
 func main() {
 	cfg := config.Load()
-	setupLogging(cfg.LogLevel)
+	setupLogging(cfg.LogLevel, cfg.LogFormat)
 
 	slog.Info("starting routeboard", "version", version)
 
@@ -67,7 +67,7 @@ func main() {
 	slog.Info("routeboard stopped")
 }
 
-func setupLogging(level string) {
+func setupLogging(level, format string) {
 	var logLevel slog.Level
 	switch level {
 	case "debug":
@@ -79,5 +79,13 @@ func setupLogging(level string) {
 	default:
 		logLevel = slog.LevelInfo
 	}
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
+	opts := &slog.HandlerOptions{Level: logLevel}
+	var handler slog.Handler
+	switch format {
+	case "json":
+		handler = slog.NewJSONHandler(os.Stderr, opts)
+	default:
+		handler = slog.NewTextHandler(os.Stderr, opts)
+	}
+	slog.SetDefault(slog.New(handler))
 }
