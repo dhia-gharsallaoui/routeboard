@@ -10,6 +10,6 @@ rules:
     resources: ["ingresses"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["gateway.networking.k8s.io"]
-    resources: ["httproutes"]
+    resources: ["httproutes", "gateways"]
     verbs: ["get", "list", "watch"]
 {{- end }}
