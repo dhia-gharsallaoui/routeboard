@@ -16,6 +16,7 @@ func TestApplyAnnotations(t *testing.T) {
 		"routeboard.io/order":       "5",
 		"routeboard.io/hidden":      "true",
 		"routeboard.io/url":         "https://custom.example.com",
+		"routeboard.io/health":      "false",
 		"unrelated/annotation":      "ignored",
 	}
 
@@ -41,6 +42,21 @@ func TestApplyAnnotations(t *testing.T) {
 	}
 	if r.URL != "https://custom.example.com" {
 		t.Errorf("URL = %q, want %q", r.URL, "https://custom.example.com")
+	}
+	if !r.HealthDisabled {
+		t.Error("HealthDisabled = false, want true")
+	}
+}
+
+func TestApplyAnnotationsHealthNotFalse(t *testing.T) {
+	for _, v := range []string{"true", "", "yes", "0"} {
+		r := &Route{}
+		ApplyAnnotations(r, map[string]string{
+			"routeboard.io/health": v,
+		})
+		if r.HealthDisabled {
+			t.Errorf("HealthDisabled = true for health=%q, want false", v)
+		}
 	}
 }
 

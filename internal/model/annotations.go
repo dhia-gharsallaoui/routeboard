@@ -28,4 +28,7 @@ func ApplyAnnotations(r *Route, annotations map[string]string) {
 	if v, ok := annotations[AnnotationPrefix+"url"]; ok {
 		r.URL = v
 	}
+	if v, ok := annotations[AnnotationPrefix+"health"]; ok {
+		r.HealthDisabled = v == "false"
+	}
 }
