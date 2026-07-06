@@ -46,6 +46,8 @@ spec:
               value: {{ .Values.config.title | quote }}
             - name: ROUTEBOARD_LOG_LEVEL
               value: {{ .Values.config.logLevel | quote }}
+            - name: ROUTEBOARD_LOG_FORMAT
+              value: {{ .Values.config.logFormat | quote }}
             - name: ROUTEBOARD_RESYNC_INTERVAL
               value: {{ .Values.config.resyncInterval | quote }}
             - name: ROUTEBOARD_HEALTH_ENABLED

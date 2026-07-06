@@ -37,6 +37,7 @@ config:
   labelSelector: ""
   title: "RouteBoard"
   logLevel: "info"
+  logFormat: "text"
   resyncInterval: "30m"
   healthEnabled: true
   healthInterval: "30s"
