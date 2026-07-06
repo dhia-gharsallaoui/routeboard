@@ -50,9 +50,11 @@ resources:
     cpu: 50m
     memory: 64Mi
 
-securityContext:
+podSecurityContext:
   runAsNonRoot: true
   runAsUser: 65534
+
+securityContext:
   readOnlyRootFilesystem: true
 
 nodeSelector: {}
