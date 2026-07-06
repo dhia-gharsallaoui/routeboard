@@ -28,11 +28,8 @@ func extractHTTPRouteRoute(hr *gwv1.HTTPRoute) *model.Route {
 	}
 
 	for _, parent := range hr.Spec.ParentRefs {
-		if parent.SectionName != nil {
-			sn := strings.ToLower(string(*parent.SectionName))
-			if strings.Contains(sn, "https") || strings.Contains(sn, "tls") {
-				r.TLS = true
-			}
+		if isTLSParentRef(parent) {
+			r.TLS = true
 		}
 	}
 
@@ -58,4 +55,22 @@ func extractHTTPRouteRoute(hr *gwv1.HTTPRoute) *model.Route {
 	model.ApplyAnnotations(r, hr.Annotations)
 
 	return r
+}
+
+// isTLSParentRef infers whether a parentRef points at a TLS-terminating
+// Gateway listener. HTTPRoutes carry no TLS config themselves and the parent
+// Gateway is not watched, so this relies on the listener port and common
+// listener naming conventions (e.g. "https", "tls", Traefik's "websecure").
+func isTLSParentRef(parent gwv1.ParentReference) bool {
+	if parent.Port != nil && *parent.Port == 443 {
+		return true
+	}
+	if parent.SectionName == nil {
+		return false
+	}
+	sn := strings.ToLower(string(*parent.SectionName))
+	if strings.Contains(sn, "https") || strings.Contains(sn, "tls") {
+		return true
+	}
+	return strings.Contains(sn, "secure") && !strings.Contains(sn, "insecure")
 }
