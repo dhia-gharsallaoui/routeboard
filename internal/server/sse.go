@@ -44,17 +44,19 @@ func (b *SSEBroker) subscribe() chan []byte {
 	ch := make(chan []byte, 16)
 	b.mu.Lock()
 	b.clients[ch] = struct{}{}
+	total := len(b.clients)
 	b.mu.Unlock()
-	slog.Debug("SSE client connected", "total", len(b.clients))
+	slog.Debug("SSE client connected", "total", total)
 	return ch
 }
 
 func (b *SSEBroker) unsubscribe(ch chan []byte) {
 	b.mu.Lock()
 	delete(b.clients, ch)
+	total := len(b.clients)
 	b.mu.Unlock()
 	close(ch)
-	slog.Debug("SSE client disconnected", "total", len(b.clients))
+	slog.Debug("SSE client disconnected", "total", total)
 }
 
 func (b *SSEBroker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
