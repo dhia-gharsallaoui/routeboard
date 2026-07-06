@@ -4,6 +4,11 @@ description: Kubernetes-native Service Entry Portal — auto-discovers Ingress a
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
+kubeVersion: ">=1.21.0-0"
+icon: https://raw.githubusercontent.com/dhia-gharsallaoui/routeboard/main/docs/screenshots/hero-light.png
+maintainers:
+  - name: dhia-gharsallaoui
+    url: https://github.com/dhia-gharsallaoui
 keywords:
   - kubernetes
   - ingress

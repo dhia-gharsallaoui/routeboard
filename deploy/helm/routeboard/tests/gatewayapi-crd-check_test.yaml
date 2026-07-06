@@ -1,0 +1,54 @@
+suite: Gateway API CRD presence check (verifyCRD)
+templates:
+  - templates/httproute.yaml
+# No capabilities.apiVersions here -> simulates a cluster WITHOUT the Gateway API CRDs.
+tests:
+  - it: fails when enabled and the Gateway API CRDs are absent (verifyCRD default true)
+    set:
+      gatewayAPI:
+        enabled: true
+        httproute:
+          parentRefs:
+            - name: my-gateway
+    asserts:
+      - failedTemplate:
+          errorMessage: "gatewayAPI.enabled=true but the Gateway API CRDs (gateway.networking.k8s.io/v1) are not installed in the cluster. Install the Gateway API CRDs, or set gatewayAPI.verifyCRD=false to skip this check (e.g. for `helm template` without a cluster — also pass --api-versions gateway.networking.k8s.io/v1)."
+
+  - it: skips the check and renders when verifyCRD is false (offline / CI)
+    set:
+      gatewayAPI:
+        enabled: true
+        verifyCRD: false
+        httproute:
+          parentRefs:
+            - name: my-gateway
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HTTPRoute
+
+  - it: renders when the CRD is present even with verifyCRD true
+    capabilities:
+      apiVersions:
+        - gateway.networking.k8s.io/v1
+    set:
+      gatewayAPI:
+        enabled: true
+        verifyCRD: true
+        httproute:
+          parentRefs:
+            - name: my-gateway
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HTTPRoute
+
+  - it: does not run the check when gatewayAPI is disabled
+    set:
+      gatewayAPI:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0

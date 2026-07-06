@@ -64,6 +64,21 @@ helm install routeboard deploy/helm/routeboard \
   -n routeboard --create-namespace
 ```
 
+### Exposing the UI
+
+Expose RouteBoard through an `Ingress` (`ingress.enabled=true`) or, on clusters with the
+Gateway API CRDs installed, through a Gateway API `HTTPRoute`:
+
+```bash
+helm install routeboard deploy/helm/routeboard -n routeboard --create-namespace \
+  --set gatewayAPI.enabled=true \
+  --set gatewayAPI.httproute.parentRefs[0].name=my-gateway \
+  --set gatewayAPI.httproute.hostnames[0]=routeboard.example.com
+```
+
+`gatewayAPI.enabled` controls only the chart's own `HTTPRoute` — discovery of other
+HTTPRoutes is independent and on by default (`config.watchHTTPRoute`).
+
 ### Local Development
 
 ```bash

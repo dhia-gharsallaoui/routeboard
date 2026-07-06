@@ -1,0 +1,29 @@
+# Keep the build context small and avoid leaking local files into image layers.
+.git/
+.gitignore
+.github/
+.dockerignore
+Dockerfile
+Makefile
+Taskfile.yml
+README.md
+LICENSE
+docs/
+
+# Go build output
+bin/
+
+# Frontend build artifacts / deps (rebuilt inside the image)
+web/node_modules/
+web/dist/
+internal/server/dist/
+
+# Helm chart (not needed to build the binary/image)
+deploy/
+
+# Editor / OS cruft
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.tgz

@@ -1,0 +1,32 @@
+RouteBoard is installed.
+
+{{- if .Values.gatewayAPI.enabled }}
+
+Gateway API HTTPRoute exposure is ENABLED.
+  NOTE: this requires the Gateway API CRDs (gateway.networking.k8s.io/v1)
+  installed cluster-wide and a Gateway to attach to.
+  {{- with .Values.gatewayAPI.httproute.hostnames }}
+  Reachable at:
+  {{- range . }}
+    http://{{ . }}/
+  {{- end }}
+  {{- else }}
+  No hostnames set on gatewayAPI.httproute.hostnames — the route attaches to its
+  Gateway listener(s) without host matching.
+  {{- end }}
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+Ingress is ENABLED. Reachable at:
+{{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}/
+{{- end }}
+{{- end }}
+
+{{- if and (not .Values.ingress.enabled) (not .Values.gatewayAPI.enabled) }}
+
+No external exposure configured. Port-forward to reach the UI locally:
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "routeboard.fullname" . }} 8080:{{ .Values.service.port }}
+  open http://localhost:8080/
+{{- end }}

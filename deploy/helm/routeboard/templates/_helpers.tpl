@@ -23,6 +23,7 @@
 helm.sh/chart: {{ include "routeboard.chart" . }}
 {{ include "routeboard.selectorLabels" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+app.kubernetes.io/component: dashboard
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 

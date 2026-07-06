@@ -1,0 +1,84 @@
+{{ template "chart.header" . }}
+
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+{{ template "chart.homepageLine" . }}
+
+## Installing
+
+```bash
+helm install routeboard oci://ghcr.io/dhia-gharsallaoui/helm/routeboard \
+  -n routeboard --create-namespace
+```
+
+Or from this repository:
+
+```bash
+helm install routeboard deploy/helm/routeboard -n routeboard --create-namespace
+```
+
+## Exposing the UI
+
+RouteBoard can be exposed through an `Ingress` or a Gateway API `HTTPRoute`.
+
+```bash
+# Ingress
+helm install routeboard deploy/helm/routeboard \
+  --set ingress.enabled=true --set ingress.hosts[0].host=routeboard.example.com
+
+# Gateway API (requires the gateway.networking.k8s.io/v1 CRDs and a Gateway)
+helm install routeboard deploy/helm/routeboard \
+  --set gatewayAPI.enabled=true \
+  --set gatewayAPI.httproute.parentRefs[0].name=my-gateway \
+  --set gatewayAPI.httproute.parentRefs[0].namespace=gateway-system \
+  --set gatewayAPI.httproute.hostnames[0]=routeboard.example.com
+```
+
+> **Set `parentRefs[].namespace` to where the Gateway lives.** It defaults to the
+> release namespace, but Gateways usually run in a separate namespace (e.g.
+> `gateway-system`, `istio-ingress`). If it points at the wrong namespace the route
+> never attaches and the Gateway returns `404` (Envoy `NR` — no route). Verify with
+> `kubectl get httproute -A` — the route should report `Accepted=True`.
+
+`gatewayAPI.enabled` controls only the chart's own `HTTPRoute`. Discovery of other
+HTTPRoutes is independent and on by default (`config.watchHTTPRoute`).
+
+## Extra manifests
+
+Deploy arbitrary resources alongside the chart via `extraManifests` — Gateway API
+traffic policies, NetworkPolicies, or anything the chart doesn't template natively.
+Each entry is rendered through `tpl`, so it can reference values and the release:
+
+```yaml
+extraManifests:
+  - apiVersion: gateway.kgateway.dev/v1alpha1
+    kind: TrafficPolicy
+    metadata:
+      name: '{{ `{{ include "routeboard.fullname" . }}` }}'
+    spec:
+      targetRefs:
+        - group: gateway.networking.k8s.io
+          kind: HTTPRoute
+          name: '{{ `{{ include "routeboard.fullname" . }}` }}'
+      retry:
+        attempts: 3
+```
+
+## Testing
+
+```bash
+helm test routeboard -n routeboard   # in-cluster connectivity test
+make helm-unittest                   # offline unit tests (helm-unittest plugin)
+```
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}

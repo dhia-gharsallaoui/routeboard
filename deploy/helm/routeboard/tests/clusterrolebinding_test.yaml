@@ -1,0 +1,37 @@
+suite: ClusterRoleBinding
+templates:
+  - templates/clusterrolebinding.yaml
+tests:
+  - it: always binds the ClusterRole to the ServiceAccount
+    release:
+      name: rb
+      namespace: routeboard
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ClusterRoleBinding
+      - equal:
+          path: roleRef.kind
+          value: ClusterRole
+      - equal:
+          path: roleRef.name
+          value: rb-routeboard
+      - equal:
+          path: subjects[0].kind
+          value: ServiceAccount
+      - equal:
+          path: subjects[0].name
+          value: rb-routeboard
+      - equal:
+          path: subjects[0].namespace
+          value: routeboard
+
+  - it: points the subject at a custom serviceAccount name
+    set:
+      serviceAccount:
+        name: custom-sa
+    asserts:
+      - equal:
+          path: subjects[0].name
+          value: custom-sa

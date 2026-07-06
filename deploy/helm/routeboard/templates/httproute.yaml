@@ -1,0 +1,40 @@
+{{- if .Values.gatewayAPI.enabled -}}
+{{- if and .Values.gatewayAPI.verifyCRD (not (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1")) }}
+{{- fail "gatewayAPI.enabled=true but the Gateway API CRDs (gateway.networking.k8s.io/v1) are not installed in the cluster. Install the Gateway API CRDs, or set gatewayAPI.verifyCRD=false to skip this check (e.g. for `helm template` without a cluster — also pass --api-versions gateway.networking.k8s.io/v1)." }}
+{{- end }}
+{{- $route := .Values.gatewayAPI.httproute -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "routeboard.fullname" . }}
+  labels:
+    {{- include "routeboard.labels" . | nindent 4 }}
+  {{- with $route.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- range $route.parentRefs }}
+    - name: {{ required "gatewayAPI.httproute.parentRefs[].name is required when gatewayAPI.enabled" .name }}
+      namespace: {{ .namespace | default $.Release.Namespace }}
+      {{- with .sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+      {{- with .port }}
+      port: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- with $route.hostnames }}
+  hostnames:
+    {{- range . }}
+    - {{ . | quote }}
+    {{- end }}
+  {{- end }}
+  rules:
+    - matches:
+        {{- toYaml $route.matches | nindent 8 }}
+      backendRefs:
+        - name: {{ include "routeboard.fullname" . }}
+          port: {{ .Values.service.port }}
+{{- end }}
