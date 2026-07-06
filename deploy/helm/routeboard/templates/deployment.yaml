@@ -48,6 +48,12 @@ spec:
               value: {{ .Values.config.logLevel | quote }}
             - name: ROUTEBOARD_RESYNC_INTERVAL
               value: {{ .Values.config.resyncInterval | quote }}
+            - name: ROUTEBOARD_HEALTH_ENABLED
+              value: {{ .Values.config.healthEnabled | quote }}
+            - name: ROUTEBOARD_HEALTH_INTERVAL
+              value: {{ .Values.config.healthInterval | quote }}
+            - name: ROUTEBOARD_HEALTH_TIMEOUT
+              value: {{ .Values.config.healthTimeout | quote }}
           livenessProbe:
             httpGet:
               path: /health

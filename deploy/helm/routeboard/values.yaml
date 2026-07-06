@@ -38,6 +38,9 @@ config:
   title: "RouteBoard"
   logLevel: "info"
   resyncInterval: "30m"
+  healthEnabled: true
+  healthInterval: "30s"
+  healthTimeout: "5s"
 
 resources:
   limits:
