@@ -143,6 +143,29 @@ func TestCheckAllUpdatesStore(t *testing.T) {
 	}
 }
 
+func TestCheckAllSkipsHealthDisabled(t *testing.T) {
+	requests := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	s := store.New(nil)
+	s.Set(&model.Route{ID: "disabled", URL: srv.URL, Title: "Disabled", HealthDisabled: true})
+
+	checker := NewChecker(testConfig(), s)
+	checker.checkAll()
+
+	if requests != 0 {
+		t.Errorf("expected 0 requests to health-disabled route, got %d", requests)
+	}
+	route, _ := s.Get("disabled")
+	if route.Health != "" {
+		t.Errorf("route health = %q, want empty (unchanged)", route.Health)
+	}
+}
+
 func TestCheckAllSkipsNoURL(t *testing.T) {
 	s := store.New(nil)
 	s.Set(&model.Route{ID: "no-url", URL: "", Title: "No URL"})
