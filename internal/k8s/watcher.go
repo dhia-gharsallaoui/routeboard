@@ -32,6 +32,7 @@ type Watcher struct {
 
 	ingressInformer   cache.SharedIndexInformer
 	httprouteInformer cache.SharedIndexInformer
+	gatewayInformer   cache.SharedIndexInformer
 }
 
 func NewWatcher(cfg *config.Config, clients *Clients, store *store.Store) *Watcher {
@@ -60,6 +61,13 @@ func NewWatcher(cfg *config.Config, clients *Clients, store *store.Store) *Watch
 		if _, err := w.httprouteInformer.AddEventHandler(w.eventHandler(string(sourceHTTPRoute))); err != nil {
 			slog.Error("failed to add httproute event handler", "error", err)
 		}
+
+		// Watch Gateways so HTTPRoute URL schemes can be derived from the
+		// parent Gateway's listener TLS configuration.
+		w.gatewayInformer = w.gwFactory.Gateway().V1().Gateways().Informer()
+		if _, err := w.gatewayInformer.AddEventHandler(w.gatewayEventHandler()); err != nil {
+			slog.Error("failed to add gateway event handler", "error", err)
+		}
 	}
 
 	return w
@@ -68,6 +76,10 @@ func NewWatcher(cfg *config.Config, clients *Clients, store *store.Store) *Watch
 const (
 	sourceIngress   = "Ingress"
 	sourceHTTPRoute = "HTTPRoute"
+
+	// gatewaySyncTimeout bounds the wait for the Gateway informer cache at
+	// startup so missing RBAC does not block the watcher indefinitely.
+	gatewaySyncTimeout = 30 * time.Second
 )
 
 func (w *Watcher) eventHandler(source string) cache.ResourceEventHandlerFuncs {
@@ -94,6 +106,43 @@ func (w *Watcher) eventHandler(source string) cache.ResourceEventHandlerFuncs {
 	}
 }
 
+// gatewayEventHandler re-enqueues all known HTTPRoutes whenever a Gateway
+// changes, since listener TLS config determines the routes' URL schemes.
+func (w *Watcher) gatewayEventHandler() cache.ResourceEventHandlerFuncs {
+	requeueAll := func(interface{}) {
+		if w.httprouteInformer == nil {
+			return
+		}
+		for _, key := range w.httprouteInformer.GetStore().ListKeys() {
+			w.queue.Add(sourceHTTPRoute + ":" + key)
+		}
+	}
+
+	return cache.ResourceEventHandlerFuncs{
+		AddFunc:    requeueAll,
+		UpdateFunc: func(_, newObj interface{}) { requeueAll(newObj) },
+		DeleteFunc: requeueAll,
+	}
+}
+
+// lookupGateway resolves a Gateway from the informer cache. It returns nil
+// when the cache has no such Gateway (e.g. not synced yet or missing RBAC),
+// letting callers fall back to heuristics.
+func (w *Watcher) lookupGateway(namespace, name string) *gwv1.Gateway {
+	if w.gatewayInformer == nil {
+		return nil
+	}
+	obj, exists, err := w.gatewayInformer.GetStore().GetByKey(namespace + "/" + name)
+	if err != nil || !exists {
+		return nil
+	}
+	gw, ok := obj.(*gwv1.Gateway)
+	if !ok {
+		return nil
+	}
+	return gw
+}
+
 func (w *Watcher) Run(ctx context.Context) error {
 	defer runtime.HandleCrash()
 	defer w.queue.ShutDown()
@@ -116,6 +165,17 @@ func (w *Watcher) Run(ctx context.Context) error {
 	}
 	if !cache.WaitForCacheSync(ctx.Done(), syncs...) {
 		return fmt.Errorf("timed out waiting for informer caches to sync")
+	}
+
+	// Wait for the Gateway cache with a bounded timeout so clusters without
+	// gateways list/watch RBAC (e.g. existing installs) degrade gracefully to
+	// the parentRef heuristic instead of blocking startup or crashing.
+	if w.gatewayInformer != nil {
+		gwCtx, cancel := context.WithTimeout(ctx, gatewaySyncTimeout)
+		if !cache.WaitForCacheSync(gwCtx.Done(), w.gatewayInformer.HasSynced) {
+			slog.Warn("gateway informer cache did not sync; falling back to parentRef heuristics for URL schemes (check RBAC for gateways get/list/watch)")
+		}
+		cancel()
 	}
 
 	slog.Info("informer caches synced, starting workers")
@@ -217,7 +277,7 @@ func (w *Watcher) syncHTTPRoute(key string) error {
 		return fmt.Errorf("unexpected type for httproute %s", key)
 	}
 
-	route := extractHTTPRouteRoute(hr)
+	route := extractHTTPRouteRoute(hr, w.lookupGateway)
 	w.store.Set(route)
 	return nil
 }
