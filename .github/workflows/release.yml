@@ -83,3 +83,52 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           helm push /tmp/helm-pkg/routeboard-${VERSION}.tgz oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/helm
+
+  binaries:
+    name: Build & Upload Release Binaries
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build frontend
+        run: cd web && bun install && bun run build
+
+      - name: Embed frontend
+        run: |
+          rm -rf internal/server/dist
+          cp -r web/dist internal/server/dist
+
+      - name: Build binaries
+        run: |
+          VERSION=${GITHUB_REF_NAME}
+          mkdir -p dist
+          for arch in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch \
+              go build -trimpath -ldflags "-X main.version=${VERSION}" \
+              -o dist/routeboard ./cmd/routeboard
+            tar -C dist -czf dist/routeboard-linux-${arch}.tar.gz routeboard
+            rm dist/routeboard
+          done
+          (cd dist && sha256sum routeboard-linux-*.tar.gz > checksums.txt)
+
+      - name: Create GitHub release with assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/routeboard-linux-amd64.tar.gz
+            dist/routeboard-linux-arm64.tar.gz
+            dist/checksums.txt
+          generate_release_notes: true

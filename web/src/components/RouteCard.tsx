@@ -203,7 +203,7 @@ function ResponseTimeBadge({ ms }: { ms?: number }) {
 	);
 }
 
-function SourceBadge({ source }: { source: "Ingress" | "HTTPRoute" }) {
+function SourceBadge({ source }: { source: "Ingress" | "HTTPRoute" | "Static" }) {
 	const isIngress = source === "Ingress";
 	return (
 		<span

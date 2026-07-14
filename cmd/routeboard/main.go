@@ -12,6 +12,7 @@ import (
 	"github.com/dhia/routeboard/internal/health"
 	"github.com/dhia/routeboard/internal/k8s"
 	"github.com/dhia/routeboard/internal/server"
+	"github.com/dhia/routeboard/internal/static"
 	"github.com/dhia/routeboard/internal/store"
 	"github.com/dhia/routeboard/internal/webhook"
 )
@@ -38,20 +39,42 @@ func main() {
 
 	routeStore := store.New(listeners...)
 
-	clients, err := k8s.NewClients(cfg.Kubeconfig)
-	if err != nil {
-		slog.Error("failed to create kubernetes clients", "error", err)
+	if !cfg.KubeEnabled && cfg.StaticRoutesPath == "" {
+		slog.Error("nothing to serve: kubernetes disabled and no static routes file",
+			"hint", "set ROUTEBOARD_STATIC_ROUTES or ROUTEBOARD_KUBE_ENABLED=true")
 		os.Exit(1)
 	}
 
-	watcher := k8s.NewWatcher(cfg, clients, routeStore)
-
-	go func() {
-		if err := watcher.Run(ctx); err != nil {
-			slog.Error("watcher error", "error", err)
-			cancel()
+	if cfg.StaticRoutesPath != "" {
+		staticRoutes, err := static.Load(cfg.StaticRoutesPath)
+		if err != nil {
+			slog.Error("failed to load static routes", "path", cfg.StaticRoutesPath, "error", err)
+			os.Exit(1)
 		}
-	}()
+		for _, r := range staticRoutes {
+			routeStore.Set(r)
+		}
+		slog.Info("loaded static routes", "count", len(staticRoutes), "path", cfg.StaticRoutesPath)
+	}
+
+	if cfg.KubeEnabled {
+		clients, err := k8s.NewClients(cfg.Kubeconfig)
+		if err != nil {
+			slog.Error("failed to create kubernetes clients", "error", err)
+			os.Exit(1)
+		}
+
+		watcher := k8s.NewWatcher(cfg, clients, routeStore)
+
+		go func() {
+			if err := watcher.Run(ctx); err != nil {
+				slog.Error("watcher error", "error", err)
+				cancel()
+			}
+		}()
+	} else {
+		slog.Info("kubernetes watching disabled")
+	}
 
 	if cfg.HealthEnabled {
 		checker := health.NewChecker(cfg, routeStore)

@@ -26,3 +26,26 @@ func TestLoadLogFormat(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadDefaults(t *testing.T) {
+	cfg := Load()
+	if cfg.StaticRoutesPath != "" {
+		t.Errorf("StaticRoutesPath = %q, want empty default", cfg.StaticRoutesPath)
+	}
+	if !cfg.KubeEnabled {
+		t.Error("KubeEnabled = false, want true by default")
+	}
+}
+
+func TestLoadStaticAndKubeEnv(t *testing.T) {
+	t.Setenv("ROUTEBOARD_STATIC_ROUTES", "/etc/routeboard/routes.yml")
+	t.Setenv("ROUTEBOARD_KUBE_ENABLED", "false")
+
+	cfg := Load()
+	if cfg.StaticRoutesPath != "/etc/routeboard/routes.yml" {
+		t.Errorf("StaticRoutesPath = %q, want %q", cfg.StaticRoutesPath, "/etc/routeboard/routes.yml")
+	}
+	if cfg.KubeEnabled {
+		t.Error("KubeEnabled = true, want false")
+	}
+}

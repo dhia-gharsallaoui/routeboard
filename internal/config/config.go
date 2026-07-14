@@ -21,6 +21,9 @@ type Config struct {
 	WatchIngress   bool
 	WatchHTTPRoute bool
 
+	KubeEnabled      bool
+	StaticRoutesPath string
+
 	Title     string
 	LogLevel  string
 	LogFormat string // text, json
@@ -43,17 +46,19 @@ func Load() *Config {
 		NamespaceDenylist: envSlice("ROUTEBOARD_NAMESPACE_DENYLIST", []string{
 			"kube-system", "kube-public", "kube-node-lease",
 		}),
-		LabelSelector:  envStr("ROUTEBOARD_LABEL_SELECTOR", ""),
-		WatchIngress:   envBool("ROUTEBOARD_WATCH_INGRESS", true),
-		WatchHTTPRoute: envBool("ROUTEBOARD_WATCH_HTTPROUTE", true),
-		Title:          envStr("ROUTEBOARD_TITLE", "RouteBoard"),
-		LogLevel:       envStr("ROUTEBOARD_LOG_LEVEL", "info"),
-		LogFormat:      envStr("ROUTEBOARD_LOG_FORMAT", "text"),
-		HealthEnabled:  envBool("ROUTEBOARD_HEALTH_ENABLED", true),
-		HealthInterval: envDuration("ROUTEBOARD_HEALTH_INTERVAL", 30*time.Second),
-		HealthTimeout:  envDuration("ROUTEBOARD_HEALTH_TIMEOUT", 5*time.Second),
-		WebhookURL:     envStr("ROUTEBOARD_WEBHOOK_URL", ""),
-		WebhookFormat:  envStr("ROUTEBOARD_WEBHOOK_FORMAT", "json"),
+		LabelSelector:    envStr("ROUTEBOARD_LABEL_SELECTOR", ""),
+		WatchIngress:     envBool("ROUTEBOARD_WATCH_INGRESS", true),
+		WatchHTTPRoute:   envBool("ROUTEBOARD_WATCH_HTTPROUTE", true),
+		KubeEnabled:      envBool("ROUTEBOARD_KUBE_ENABLED", true),
+		StaticRoutesPath: envStr("ROUTEBOARD_STATIC_ROUTES", ""),
+		Title:            envStr("ROUTEBOARD_TITLE", "RouteBoard"),
+		LogLevel:         envStr("ROUTEBOARD_LOG_LEVEL", "info"),
+		LogFormat:        envStr("ROUTEBOARD_LOG_FORMAT", "text"),
+		HealthEnabled:    envBool("ROUTEBOARD_HEALTH_ENABLED", true),
+		HealthInterval:   envDuration("ROUTEBOARD_HEALTH_INTERVAL", 30*time.Second),
+		HealthTimeout:    envDuration("ROUTEBOARD_HEALTH_TIMEOUT", 5*time.Second),
+		WebhookURL:       envStr("ROUTEBOARD_WEBHOOK_URL", ""),
+		WebhookFormat:    envStr("ROUTEBOARD_WEBHOOK_FORMAT", "json"),
 	}
 }
 

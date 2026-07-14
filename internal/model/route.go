@@ -7,6 +7,7 @@ type RouteSource string
 const (
 	SourceIngress   RouteSource = "Ingress"
 	SourceHTTPRoute RouteSource = "HTTPRoute"
+	SourceStatic    RouteSource = "Static"
 )
 
 type Route struct {
