@@ -2,7 +2,7 @@ export interface Route {
 	id: string;
 	name: string;
 	namespace: string;
-	source: "Ingress" | "HTTPRoute";
+	source: "Ingress" | "HTTPRoute" | "Static";
 	url: string;
 	hosts: string[];
 	paths: string[];

@@ -98,6 +98,8 @@ All configuration is via environment variables. Everything has sensible defaults
 | `ROUTEBOARD_HEALTH_TIMEOUT` | `5s` | Health check timeout |
 | `ROUTEBOARD_LOG_LEVEL` | `info` | Log level (debug/info/warn/error) |
 | `ROUTEBOARD_LOG_FORMAT` | `text` | Log format (text/json) |
+| `ROUTEBOARD_STATIC_ROUTES` | `""` | Path to a YAML file of static routes served alongside (or instead of) discovered ones |
+| `ROUTEBOARD_KUBE_ENABLED` | `true` | Set `false` to run without Kubernetes (static routes only) |
 
 ## Annotations
 
@@ -115,6 +117,26 @@ metadata:
     routeboard.io/url: "https://custom.url"      # Override computed URL
     routeboard.io/health: "false"                # Exclude from health checks (route stays listed)
 ```
+
+## Static routes (no Kubernetes required)
+
+RouteBoard can serve endpoints that don't live in a cluster — bare VMs,
+appliances, homelab boxes. Point `ROUTEBOARD_STATIC_ROUTES` at a YAML file:
+
+```yaml
+routes:
+  - name: grafana                  # required, unique
+    url: http://192.168.10.30:3000 # required
+    title: Grafana                 # optional (default: name)
+    description: Metrics           # optional
+    group: monitoring              # optional (default: "static")
+    icon: si:grafana               # optional
+    order: 1                       # optional
+    health: true                   # optional, default true
+```
+
+Set `ROUTEBOARD_KUBE_ENABLED=false` to run fully standalone. The file is
+read once at startup; restart the service after editing it.
 
 ## Architecture
 
