@@ -102,7 +102,17 @@ export function RouteDetailPanel({ route, isFavorite, onToggleFavorite, onClose 
 						<MetaRow label="Namespace" value={route.namespace} />
 						<MetaRow label="Source" value={route.source} />
 						{route.serviceName && <MetaRow label="Service" value={`${route.serviceName}${route.servicePort ? `:${route.servicePort}` : ""}`} />}
-						<MetaRow label="Hosts" value={route.hosts?.join(", ") || "—"} />
+						<div className="flex items-baseline py-1.5 gap-3">
+						    <span className="text-xs text-tx3 w-20 flex-shrink-0">Hosts</span>
+						    <div className="flex flex-wrap gap-x-3 gap-y-1 min-w-0">
+						        {(route.hosts ?? []).map((h) => (
+						            <a key={h} href={`${route.tls ? "https" : "http"}://${h}`} target="_blank" rel="noopener noreferrer" className="text-sm text-tx1 font-mono break-all hover:underline">
+						                {h}
+						            </a>
+						        ))}
+						        {!route.hosts?.length && <span className="text-sm text-tx1 font-mono">—</span>}
+						    </div>
+						</div>
 						<MetaRow label="Paths" value={route.paths?.join(", ") || "/"} />
 						<MetaRow label="TLS" value={route.tls ? "Yes" : "No"} />
 						<MetaRow label="Created" value={formatDate(route.createdAt)} />
