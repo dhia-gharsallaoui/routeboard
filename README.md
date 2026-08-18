@@ -21,7 +21,7 @@ Existing tools didn't fit: [Backstage](https://backstage.io/) is too heavy, [Hom
 - **Auto-discovery** — watches Kubernetes Ingress and HTTPRoute resources in real-time via informers
 - **Zero config** — deploy with Helm and it works immediately, no configuration required
 - **Health monitoring** — pings each service periodically, shows green/yellow/red status badges
-- **Brand icons** — automatically fetches real SVG brand icons from [Simple Icons](https://simpleicons.org/) for 65+ services
+- **Brand icons** — automatically fetches SVG brand icons from [Simple Icons](https://simpleicons.org/), with [Dashboard Icons](https://dashboardicons.com/) as a fallback
 - **Annotation-driven** — customize titles, descriptions, groups, and icons via Kubernetes annotations
 - **Real-time updates** — Server-Sent Events push changes to the browser instantly
 - **Gateway API first-class** — supports both `networking.k8s.io/v1 Ingress` and `gateway.networking.k8s.io/v1 HTTPRoute`
@@ -172,7 +172,7 @@ rules:
 |---|---|
 | Backend | Go 1.26, client-go, gateway-api |
 | Frontend | React 19, Vite, Tailwind CSS v4 |
-| Icons | [Lucide](https://lucide.dev/) + [Simple Icons](https://simpleicons.org/) CDN |
+| Icons | [Lucide](https://lucide.dev/) + [Simple Icons](https://simpleicons.org/) and [Dashboard Icons](https://dashboardicons.com/) CDNs |
 | Package manager | [Bun](https://bun.sh/) |
 | Linter | [Biome](https://biomejs.dev/) (frontend), golangci-lint (backend) |
 | Deployment | Helm, Docker (distroless) |

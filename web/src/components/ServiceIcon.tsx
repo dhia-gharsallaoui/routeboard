@@ -13,15 +13,28 @@ interface CachedIcon {
 	path: string;
 	color?: string;
 }
+
+type BrandIconState = CachedIcon | "failed" | undefined;
+
 const svgCache = new Map<string, CachedIcon | null>();
+const dashboardIconsBaseUrl = "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@8a8c513b7d0b544ee56e366a9d5be364439d2226/svg";
 
 export function ServiceIcon({ serviceName, resourceName, className = "", size = 28 }: ServiceIconProps) {
 	const name = (serviceName || resourceName).toLowerCase();
 
 	// 1. Try known slug mapping
-	const slug = resolveSlug(name);
-	if (slug) {
-		return <BrandIcon slug={slug} fallbackPath={fallbackPaths[slug]} size={size} className={className} />;
+	const slugs = resolveSlug(name);
+	if (slugs) {
+		return (
+			<BrandIcon
+				key={slugs.simple}
+				slug={slugs.simple}
+				dashboardSlug={slugs.dashboard}
+				fallbackPath={fallbackPaths[slugs.simple]}
+				size={size}
+				className={className}
+			/>
+		);
 	}
 
 	// 2. Category-based fallback icons
@@ -32,34 +45,49 @@ export function ServiceIcon({ serviceName, resourceName, className = "", size = 
 		return <Layers size={size} className={className} />;
 	}
 
-	// 3. Try the service name itself as a CDN slug (strip common suffixes/prefixes)
+	// 3. Try the service name itself as a CDN slug (strip common suffixes)
 	const guessedSlug = guessSlug(name);
 	if (guessedSlug) {
-		return <BrandIcon slug={guessedSlug} size={size} className={className} />;
+		return <BrandIcon key={guessedSlug} slug={guessedSlug} dashboardSlug={guessSlug(name, "-")} size={size} className={className} />;
 	}
 
 	return <Globe size={size} className={className} />;
 }
 
-// Try to derive a Simple Icons slug from the service name.
-// Strips common k8s suffixes like -server, -svc, -app, -web, etc.
-function guessSlug(name: string): string | undefined {
-	const cleaned = name
-		.replace(/[-_](server|svc|service|app|web|ui|api|proxy|gateway|controller|operator|backend|frontend|master|main|primary)\b/g, "")
-		.replace(/[^a-z0-9]/g, "")
-		.trim();
-	if (cleaned.length < 2) return undefined;
-	return cleaned;
+const serviceSuffixPattern = /(?:[-_](?:server|svc|service|app|web|ui|api|proxy|gateway|controller|operator|backend|frontend|master|main|primary))+$/;
+
+function guessSlug(name: string, separator: "" | "-" = ""): string | undefined {
+	const slug = name
+		.replace(serviceSuffixPattern, "")
+		.replace(/[^a-z0-9]+/g, separator)
+		.replace(/^-|-$/g, "");
+	return slug.length >= 2 ? slug : undefined;
 }
 
-function BrandIcon({ slug, fallbackPath, size, className }: { slug: string; fallbackPath?: string; size: number; className: string }) {
-	const cached = svgCache.get(slug);
-	const [icon, setIcon] = useState<CachedIcon | null>(cached ?? (fallbackPath ? { path: fallbackPath } : null));
+function BrandIcon({
+	slug,
+	dashboardSlug,
+	fallbackPath,
+	size,
+	className,
+}: {
+	slug: string;
+	dashboardSlug?: string;
+	fallbackPath?: string;
+	size: number;
+	className: string;
+}) {
+	const [state, setState] = useState<BrandIconState>(() => {
+		const cached = svgCache.get(slug);
+		if (cached) return cached;
+		if (fallbackPath) return { path: fallbackPath };
+		return cached === null ? "failed" : undefined;
+	});
 
 	useEffect(() => {
-		if (svgCache.has(slug)) {
-			const c = svgCache.get(slug);
-			if (c) setIcon(c);
+		const cached = svgCache.get(slug);
+		if (cached !== undefined) {
+			setState(cached ?? (fallbackPath ? { path: fallbackPath } : "failed"));
 			return;
 		}
 
@@ -71,28 +99,25 @@ function BrandIcon({ slug, fallbackPath, size, className }: { slug: string; fall
 			})
 			.then((svgText) => {
 				const pathMatch = svgText.match(/<path\s[^>]*d="([^"]+)"/);
-				const fillMatch = svgText.match(/fill="(#[0-9A-Fa-f]{3,8})"/);
-				if (pathMatch && !cancelled) {
-					const entry: CachedIcon = {
-						path: pathMatch[1],
-						color: fillMatch?.[1],
-					};
-					svgCache.set(slug, entry);
-					setIcon(entry);
-				} else {
-					svgCache.set(slug, null);
-				}
+				if (!pathMatch) throw new Error("no path");
+				const entry: CachedIcon = { path: pathMatch[1], color: svgText.match(/fill="(#[0-9A-Fa-f]{3,8})"/)?.[1] };
+				svgCache.set(slug, entry);
+				if (!cancelled) setState(entry);
 			})
 			.catch(() => {
 				svgCache.set(slug, null);
+				if (!cancelled && !fallbackPath) setState("failed");
 			});
 
 		return () => {
 			cancelled = true;
 		};
-	}, [slug]);
+	}, [slug, fallbackPath]);
 
-	if (!icon) {
+	if (state === "failed") {
+		return <DashboardIcon key={dashboardSlug} slug={dashboardSlug} size={size} className={className} />;
+	}
+	if (!state) {
 		return <Globe size={size} className={className} />;
 	}
 
@@ -102,29 +127,39 @@ function BrandIcon({ slug, fallbackPath, size, className }: { slug: string; fall
 			width={size}
 			height={size}
 			className={className}
-			fill={icon.color || "currentColor"}
+			fill={state.color || "currentColor"}
 			role="img"
 			aria-label="Service icon"
 		>
-			<path d={icon.path} />
+			<path d={state.path} />
 		</svg>
 	);
 }
 
+function DashboardIcon({ slug, size, className }: { slug?: string; size: number; className: string }) {
+	const [failed, setFailed] = useState(false);
+
+	if (!slug || failed) {
+		return <Globe size={size} className={className} />;
+	}
+
+	return <img src={`${dashboardIconsBaseUrl}/${slug}.svg`} width={size} height={size} className={className} alt="" onError={() => setFailed(true)} />;
+}
+
 // Map service name patterns to Simple Icons slugs
-function resolveSlug(name: string): string | undefined {
-	for (const [pattern, slug] of slugMap) {
-		if (name.includes(pattern)) return slug;
+function resolveSlug(name: string): { simple: string; dashboard: string } | undefined {
+	for (const [pattern, simple, dashboard = pattern] of slugMap) {
+		if (name.includes(pattern)) return { simple, dashboard };
 	}
 	return undefined;
 }
 
-// Pattern → Simple Icons slug
-const slugMap: [string, string][] = [
+// Pattern → Simple Icons slug, optional Dashboard Icons slug
+const slugMap: [pattern: string, simple: string, dashboard?: string][] = [
 	["grafana", "grafana"],
 	["prometheus", "prometheus"],
 	["alertmanager", "prometheus"],
-	["argocd", "argo"],
+	["argocd", "argo", "argo-cd"],
 	["argo-cd", "argo"],
 	["jenkins", "jenkins"],
 	["gitlab", "gitlab"],
@@ -157,9 +192,9 @@ const slugMap: [string, string][] = [
 	["nextcloud", "nextcloud"],
 	["plex", "plex"],
 	["jellyfin", "jellyfin"],
-	["homeassistant", "homeassistant"],
+	["homeassistant", "homeassistant", "home-assistant"],
 	["home-assistant", "homeassistant"],
-	["pihole", "pihole"],
+	["pihole", "pihole", "pi-hole"],
 	["adguard", "adguard"],
 	["wireguard", "wireguard"],
 	["openvpn", "openvpn"],
@@ -180,7 +215,7 @@ const slugMap: [string, string][] = [
 	["metabase", "metabase"],
 	["n8n", "n8n"],
 	["authentik", "authentik"],
-	["woodpecker", "woodpeckerci"],
+	["woodpecker", "woodpeckerci", "woodpecker-ci"],
 	["forgejo", "forgejo"],
 	["trivy", "trivy"],
 	["loki", "grafana"],
