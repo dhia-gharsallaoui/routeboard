@@ -9,15 +9,17 @@ func TestApplyAnnotations(t *testing.T) {
 	}
 
 	annotations := map[string]string{
-		"routeboard.io/title":       "Custom Title",
-		"routeboard.io/description": "A great service",
-		"routeboard.io/icon":        "🎯",
-		"routeboard.io/group":       "Monitoring",
-		"routeboard.io/order":       "5",
-		"routeboard.io/hidden":      "true",
-		"routeboard.io/url":         "https://custom.example.com",
-		"routeboard.io/health":      "false",
-		"unrelated/annotation":      "ignored",
+		"routeboard.io/title":         "Custom Title",
+		"routeboard.io/description":   "A great service",
+		"routeboard.io/icon":          "🎯",
+		"routeboard.io/group":         "Monitoring",
+		"routeboard.io/order":         "5",
+		"routeboard.io/hidden":        "true",
+		"routeboard.io/url":           "https://custom.example.com",
+		"routeboard.io/health":        "false",
+		"routeboard.io/health-path":   "/healthz",
+		"routeboard.io/health-method": "get",
+		"unrelated/annotation":        "ignored",
 	}
 
 	ApplyAnnotations(r, annotations)
@@ -45,6 +47,70 @@ func TestApplyAnnotations(t *testing.T) {
 	}
 	if !r.HealthDisabled {
 		t.Error("HealthDisabled = false, want true")
+	}
+	if r.HealthPath != "/healthz" {
+		t.Errorf("HealthPath = %q, want %q", r.HealthPath, "/healthz")
+	}
+	if r.HealthMethod != "GET" {
+		t.Errorf("HealthMethod = %q, want %q", r.HealthMethod, "GET")
+	}
+}
+
+func TestApplyAnnotationsHealthPath(t *testing.T) {
+	tests := []struct {
+		value string
+		want  string
+	}{
+		{"/healthz", "/healthz"},
+		{"healthz", "/healthz"},
+		{"  /healthz  ", "/healthz"},
+		{"/healthz?verbose=1", "/healthz?verbose=1"},
+		{"", "/default"},
+		{"   ", "/default"},
+	}
+
+	for _, tt := range tests {
+		r := &Route{HealthPath: "/default"}
+		ApplyAnnotations(r, map[string]string{"routeboard.io/health-path": tt.value})
+		if r.HealthPath != tt.want {
+			t.Errorf("health-path=%q: HealthPath = %q, want %q", tt.value, r.HealthPath, tt.want)
+		}
+	}
+}
+
+func TestApplyAnnotationsHealthMethod(t *testing.T) {
+	tests := []struct {
+		value string
+		want  string
+	}{
+		{"GET", "GET"},
+		{"get", "GET"},
+		{" head ", "HEAD"},
+		{"options", "OPTIONS"},
+		// Unsupported or invalid methods keep whatever was already set.
+		{"POST", "HEAD"},
+		{"DELETE", "HEAD"},
+		{"not a method", "HEAD"},
+		{"", "HEAD"},
+	}
+
+	for _, tt := range tests {
+		r := &Route{HealthMethod: "HEAD"}
+		ApplyAnnotations(r, map[string]string{"routeboard.io/health-method": tt.value})
+		if r.HealthMethod != tt.want {
+			t.Errorf("health-method=%q: HealthMethod = %q, want %q", tt.value, r.HealthMethod, tt.want)
+		}
+	}
+}
+
+func TestApplyAnnotationsHealthDefaultsUnset(t *testing.T) {
+	r := &Route{}
+	ApplyAnnotations(r, map[string]string{"routeboard.io/title": "Grafana"})
+	if r.HealthPath != "" {
+		t.Errorf("HealthPath = %q, want empty", r.HealthPath)
+	}
+	if r.HealthMethod != "" {
+		t.Errorf("HealthMethod = %q, want empty", r.HealthMethod)
 	}
 }
 

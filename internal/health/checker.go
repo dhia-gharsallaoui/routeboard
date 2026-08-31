@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -90,7 +91,7 @@ func (c *Checker) checkAll() {
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			status, elapsed := c.check(r.URL)
+			status, elapsed := c.check(r)
 			now := time.Now()
 			c.store.UpdateHealth(r.ID, status, now, elapsed.Milliseconds())
 		}(route)
@@ -99,10 +100,15 @@ func (c *Checker) checkAll() {
 	wg.Wait()
 }
 
-func (c *Checker) check(url string) (model.HealthStatus, time.Duration) {
+func (c *Checker) check(r *model.Route) (model.HealthStatus, time.Duration) {
 	start := time.Now()
 
-	req, err := http.NewRequest(http.MethodHead, url, nil)
+	method := r.HealthMethod
+	if method == "" {
+		method = model.DefaultHealthMethod
+	}
+
+	req, err := http.NewRequest(method, healthURL(r), nil)
 	if err != nil {
 		return model.HealthUnhealthy, 0
 	}
@@ -128,4 +134,32 @@ func (c *Checker) check(url string) (model.HealthStatus, time.Duration) {
 	default:
 		return model.HealthUnhealthy, elapsed
 	}
+}
+
+// healthURL applies the route's health path to its URL. The path is always
+// root-relative, so it replaces the URL path instead of extending it; an empty
+// health path leaves the route URL untouched.
+func healthURL(r *model.Route) string {
+	if r.HealthPath == "" {
+		return r.URL
+	}
+
+	base, err := url.Parse(r.URL)
+	if err != nil {
+		return r.URL
+	}
+	ref, err := url.Parse(r.HealthPath)
+	if err != nil {
+		return r.URL
+	}
+
+	// Only the path and query are taken from the annotation - the route URL
+	// stays the authority on scheme and host.
+	base.Path = ref.Path
+	base.RawPath = ref.RawPath
+	base.RawQuery = ref.RawQuery
+	base.Fragment = ""
+	base.RawFragment = ""
+
+	return base.String()
 }

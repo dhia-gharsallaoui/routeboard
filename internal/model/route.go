@@ -33,6 +33,8 @@ type Route struct {
 	UpdatedAt   time.Time         `json:"updatedAt"`
 
 	HealthDisabled      bool           `json:"healthDisabled,omitempty"`
+	HealthPath          string         `json:"healthPath,omitempty"`
+	HealthMethod        string         `json:"healthMethod,omitempty"`
 	Health              HealthStatus   `json:"health"`
 	HealthCheckedAt     time.Time      `json:"healthCheckedAt,omitempty"`
 	HealthHistory       []HealthStatus `json:"healthHistory,omitempty"`
