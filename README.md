@@ -116,6 +116,8 @@ metadata:
     routeboard.io/hidden: "true"                 # Hide from dashboard
     routeboard.io/url: "https://custom.url"      # Override computed URL
     routeboard.io/health: "false"                # Exclude from health checks (route stays listed)
+    routeboard.io/health-path: "/health"         # Path probed by the health check (default: the route URL as-is)
+    routeboard.io/health-method: "GET"           # Method used by the health check: HEAD, GET or OPTIONS (default: HEAD)
 ```
 
 ## Static routes (no Kubernetes required)

@@ -29,7 +29,7 @@ func TestCheckHealthy(t *testing.T) {
 	s := store.New(nil)
 	checker := NewChecker(cfg, s)
 
-	status, elapsed := checker.check(srv.URL)
+	status, elapsed := checker.check(&model.Route{URL: srv.URL})
 	if status != model.HealthHealthy {
 		t.Errorf("got %q, want %q", status, model.HealthHealthy)
 	}
@@ -46,7 +46,7 @@ func TestCheckUnhealthy500(t *testing.T) {
 
 	checker := NewChecker(testConfig(), store.New(nil))
 
-	status, elapsed := checker.check(srv.URL)
+	status, elapsed := checker.check(&model.Route{URL: srv.URL})
 	if status != model.HealthUnhealthy {
 		t.Errorf("got %q, want %q", status, model.HealthUnhealthy)
 	}
@@ -63,7 +63,7 @@ func TestCheckDegraded4xx(t *testing.T) {
 
 	checker := NewChecker(testConfig(), store.New(nil))
 
-	status, elapsed := checker.check(srv.URL)
+	status, elapsed := checker.check(&model.Route{URL: srv.URL})
 	if status != model.HealthDegraded {
 		t.Errorf("got %q, want %q", status, model.HealthDegraded)
 	}
@@ -75,7 +75,7 @@ func TestCheckDegraded4xx(t *testing.T) {
 func TestCheckUnhealthyConnectionRefused(t *testing.T) {
 	checker := NewChecker(testConfig(), store.New(nil))
 
-	status, elapsed := checker.check("http://localhost:1") // nothing listening
+	status, elapsed := checker.check(&model.Route{URL: "http://localhost:1"}) // nothing listening
 	if status != model.HealthUnhealthy {
 		t.Errorf("got %q, want %q", status, model.HealthUnhealthy)
 	}
@@ -95,12 +95,108 @@ func TestCheckHealthyRedirect(t *testing.T) {
 
 	checker := NewChecker(testConfig(), store.New(nil))
 
-	status, elapsed := checker.check(redirect.URL)
+	status, elapsed := checker.check(&model.Route{URL: redirect.URL})
 	if status != model.HealthHealthy {
 		t.Errorf("got %q, want %q", status, model.HealthHealthy)
 	}
 	if elapsed <= 0 {
 		t.Error("expected elapsed > 0 for healthy redirect")
+	}
+}
+
+func TestCheckDefaultsToHeadOnRoot(t *testing.T) {
+	var gotMethod, gotPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	checker := NewChecker(testConfig(), store.New(nil))
+
+	if status, _ := checker.check(&model.Route{URL: srv.URL}); status != model.HealthHealthy {
+		t.Errorf("got %q, want %q", status, model.HealthHealthy)
+	}
+	if gotMethod != http.MethodHead {
+		t.Errorf("method = %q, want %q", gotMethod, http.MethodHead)
+	}
+	if gotPath != "/" {
+		t.Errorf("path = %q, want %q", gotPath, "/")
+	}
+}
+
+func TestCheckUsesHealthPathAndMethod(t *testing.T) {
+	var gotMethod, gotPath, gotQuery string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath, gotQuery = r.Method, r.URL.Path, r.URL.RawQuery
+		if r.Method != http.MethodGet || r.URL.Path != "/healthz" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	checker := NewChecker(testConfig(), store.New(nil))
+
+	route := &model.Route{
+		URL:          srv.URL + "/app",
+		HealthPath:   "/healthz?verbose=1",
+		HealthMethod: http.MethodGet,
+	}
+	if status, _ := checker.check(route); status != model.HealthHealthy {
+		t.Errorf("got %q, want %q", status, model.HealthHealthy)
+	}
+	if gotMethod != http.MethodGet {
+		t.Errorf("method = %q, want %q", gotMethod, http.MethodGet)
+	}
+	if gotPath != "/healthz" {
+		t.Errorf("path = %q, want %q", gotPath, "/healthz")
+	}
+	if gotQuery != "verbose=1" {
+		t.Errorf("query = %q, want %q", gotQuery, "verbose=1")
+	}
+}
+
+func TestHealthURL(t *testing.T) {
+	tests := []struct {
+		name  string
+		route *model.Route
+		want  string
+	}{
+		{
+			name:  "no health path keeps the route url",
+			route: &model.Route{URL: "https://example.com/app"},
+			want:  "https://example.com/app",
+		},
+		{
+			name:  "health path replaces the url path",
+			route: &model.Route{URL: "https://example.com/app", HealthPath: "/healthz"},
+			want:  "https://example.com/healthz",
+		},
+		{
+			name:  "health path keeps its query",
+			route: &model.Route{URL: "https://example.com/app?a=1", HealthPath: "/healthz?b=2"},
+			want:  "https://example.com/healthz?b=2",
+		},
+		{
+			name:  "host in the health path is ignored",
+			route: &model.Route{URL: "https://example.com/app", HealthPath: "//evil.example.com/healthz"},
+			want:  "https://example.com/healthz",
+		},
+		{
+			name:  "unparseable url is left alone",
+			route: &model.Route{URL: "://nope", HealthPath: "/healthz"},
+			want:  "://nope",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := healthURL(tt.route); got != tt.want {
+				t.Errorf("healthURL() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
