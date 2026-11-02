@@ -63,10 +63,15 @@ func extractIngressRoute(ingress *networkingv1.Ingress) *model.Route {
 }
 
 func computeURL(r *model.Route) string {
+	return computeURLWithPort(r, nil)
+}
+
+func computeURLWithPort(r *model.Route, listenerPort *int32) string {
 	scheme := "http"
 	if r.TLS {
 		scheme = "https"
 	}
+
 	host := ""
 	if len(r.Hosts) > 0 {
 		host = r.Hosts[0]
@@ -74,11 +79,18 @@ func computeURL(r *model.Route) string {
 	if host == "" {
 		return ""
 	}
+
+	port := ""
+	if listenerPort != nil && *listenerPort != 80 && *listenerPort != 443 {
+		port = fmt.Sprintf(":%d", *listenerPort)
+	}
+
 	path := ""
 	if len(r.Paths) > 0 && r.Paths[0] != "/" {
 		path = r.Paths[0]
 	}
-	return fmt.Sprintf("%s://%s%s", scheme, host, path)
+
+	return fmt.Sprintf("%s://%s%s%s", scheme, host, port, path)
 }
 
 func titleize(name string) string {

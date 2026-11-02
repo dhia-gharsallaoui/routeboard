@@ -33,9 +33,14 @@ func extractHTTPRouteRoute(hr *gwv1.HTTPRoute, lookupGateway gatewayLookupFunc) 
 		r.Hosts = append(r.Hosts, string(h))
 	}
 
+	var listenerPort *int32
 	for _, parent := range hr.Spec.ParentRefs {
 		if parentRefTLS(hr, parent, lookupGateway) {
 			r.TLS = true
+		}
+		if port := resolveHTTPRouteListenerPort(hr, parent, lookupGateway); port != nil {
+			listenerPort = port
+			break
 		}
 	}
 
@@ -55,12 +60,44 @@ func extractHTTPRouteRoute(hr *gwv1.HTTPRoute, lookupGateway gatewayLookupFunc) 
 		}
 	}
 
-	r.URL = computeURL(r)
+	r.URL = computeURLWithPort(r, listenerPort)
 	r.Title = titleize(r.Name)
 	r.Icon = model.DetectIcon(r.ServiceName, r.Name)
 	model.ApplyAnnotations(r, hr.Annotations)
 
 	return r
+}
+
+func resolveHTTPRouteListenerPort(hr *gwv1.HTTPRoute, parent gwv1.ParentReference, lookupGateway gatewayLookupFunc) *int32 {
+	if !refersToGateway(parent) || lookupGateway == nil {
+		return nil
+	}
+
+	ns := hr.Namespace
+	if parent.Namespace != nil && *parent.Namespace != "" {
+		ns = string(*parent.Namespace)
+	}
+
+	gw := lookupGateway(ns, string(parent.Name))
+	if gw == nil {
+		return nil
+	}
+
+	for _, l := range gw.Spec.Listeners {
+		if parent.SectionName != nil && l.Name != *parent.SectionName {
+			continue
+		}
+		if parent.SectionName == nil && parent.Port != nil && l.Port != *parent.Port {
+			continue
+		}
+		if !listenerHostnameCompatible(l.Hostname, hr.Spec.Hostnames) {
+			continue
+		}
+		port := l.Port
+		return &port
+	}
+
+	return nil
 }
 
 // parentRefTLS reports whether a parentRef implies the route is served over
