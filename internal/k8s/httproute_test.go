@@ -125,7 +125,7 @@ func TestExtractHTTPRouteRouteGatewayListenerTLS(t *testing.T) {
 			parentRefs: []gwv1.ParentReference{{Name: "gw"}},
 			gateways:   []*gwv1.Gateway{gateway("default", "gw", tlsListener)},
 			wantTLS:    true,
-			wantURL:    "https://app.example.com",
+			wantURL:    "https://app.example.com:8443",
 		},
 		{
 			name: "cross-namespace parentRef resolves gateway in that namespace",
