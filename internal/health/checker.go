@@ -3,8 +3,11 @@ package health
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -20,13 +23,20 @@ type Checker struct {
 }
 
 func NewChecker(cfg *config.Config, s *store.Store) *Checker {
+	tlsCfg, err := buildHealthTLSConfig(cfg)
+	if err != nil {
+		slog.Warn("health checker TLS config could not be loaded; continuing without mTLS",
+			"error", err)
+		tlsCfg = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+
 	return &Checker{
 		cfg:   cfg,
 		store: s,
 		client: &http.Client{
 			Timeout: cfg.HealthTimeout,
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: tlsCfg,
 			},
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				if len(via) >= 3 {
@@ -128,4 +138,35 @@ func (c *Checker) check(url string) (model.HealthStatus, time.Duration) {
 	default:
 		return model.HealthUnhealthy, elapsed
 	}
+}
+
+func buildHealthTLSConfig(cfg *config.Config) (*tls.Config, error) {
+	tlsCfg := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
+	if cfg.HealthCAFile != "" {
+		caPEM, err := os.ReadFile(cfg.HealthCAFile)
+		if err != nil {
+			return nil, err
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(caPEM) {
+			return nil, fmt.Errorf("invalid CA cert")
+		}
+		tlsCfg.RootCAs = pool
+	}
+
+	if cfg.HealthClientCert != "" || cfg.HealthClientKey != "" {
+		if cfg.HealthClientCert == "" || cfg.HealthClientKey == "" {
+			return nil, fmt.Errorf("both client cert and key required")
+		}
+		cert, err := tls.LoadX509KeyPair(cfg.HealthClientCert, cfg.HealthClientKey)
+		if err != nil {
+			return nil, err
+		}
+		tlsCfg.Certificates = []tls.Certificate{cert}
+	}
+
+	return tlsCfg, nil
 }
