@@ -146,15 +146,18 @@ func buildHealthTLSConfig(cfg *config.Config) (*tls.Config, error) {
 	}
 
 	if cfg.HealthCAFile != "" {
+		roots, err := x509.SystemCertPool()
+		if err != nil || roots == nil {
+			roots = x509.NewCertPool()
+		}
 		caPEM, err := os.ReadFile(cfg.HealthCAFile)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("read health-check CA: %w", err)
 		}
-		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM(caPEM) {
-			return nil, fmt.Errorf("invalid CA cert")
+		if ok := roots.AppendCertsFromPEM(caPEM); !ok {
+			return nil, fmt.Errorf("health-check CA file contains no valid certificates")
 		}
-		tlsCfg.RootCAs = pool
+		tlsCfg.RootCAs = roots
 	}
 
 	if cfg.HealthClientCert != "" || cfg.HealthClientKey != "" {
