@@ -104,7 +104,11 @@ func (c *Checker) checkAll() {
 			if r.HealthURL != "" {
 				healthURL = r.HealthURL
 			}
-			status, elapsed := c.check(healthURL)
+			method := r.HealthMethod
+			if method == "" {
+				method = http.MethodHead
+			}
+			status, elapsed := c.check(healthURL, method)
 			now := time.Now()
 			c.store.UpdateHealth(r.ID, status, now, elapsed.Milliseconds())
 		}(route)
@@ -113,10 +117,10 @@ func (c *Checker) checkAll() {
 	wg.Wait()
 }
 
-func (c *Checker) check(url string) (model.HealthStatus, time.Duration) {
+func (c *Checker) check(url, method string) (model.HealthStatus, time.Duration) {
 	start := time.Now()
 
-	req, err := http.NewRequest(http.MethodHead, url, nil)
+	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return model.HealthUnhealthy, 0
 	}

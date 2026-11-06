@@ -1,8 +1,10 @@
 package model
 
 import (
+	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 const AnnotationPrefix = "routeboard.io/"
@@ -36,6 +38,12 @@ func ApplyAnnotations(r *Route, annotations map[string]string) {
 	}
 	if v, ok := annotations[AnnotationPrefix+"health-endpoint"]; ok {
 		r.HealthURL = resolveHealthURL(r.URL, v)
+	}
+	if v, ok := annotations[AnnotationPrefix+"health-method"]; ok {
+		switch method := strings.ToUpper(strings.TrimSpace(v)); method {
+		case http.MethodGet, http.MethodHead:
+			r.HealthMethod = method
+		}
 	}
 }
 
