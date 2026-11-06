@@ -116,6 +116,7 @@ metadata:
     routeboard.io/hidden: "true"                 # Hide from dashboard
     routeboard.io/url: "https://custom.url"      # Override computed URL
     routeboard.io/health-endpoint: "/ping"       # Health-check path (dashboard URL is unchanged)
+    routeboard.io/health-method: "GET"            # Health-check method (GET or HEAD; default HEAD)
     routeboard.io/health: "false"                # Exclude from health checks (route stays listed)
 ```
 
@@ -145,7 +146,7 @@ read once at startup; restart the service after editing it.
 Kubernetes API ──> Informers ──> Route Store ──> SSE Broker ──> React SPA
                    (Ingress)     (in-memory)     (push)        (real-time)
                    (HTTPRoute)       │
-                                     └──> Health Checker (periodic HEAD requests)
+                                     └──> Health Checker (periodic HTTP requests)
 ```
 
 - **Backend**: Go with `client-go` informers — native Kubernetes integration, no polling
