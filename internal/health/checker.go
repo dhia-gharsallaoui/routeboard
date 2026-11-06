@@ -100,7 +100,11 @@ func (c *Checker) checkAll() {
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			status, elapsed := c.check(r.URL)
+			healthURL := r.URL
+			if r.HealthURL != "" {
+				healthURL = r.HealthURL
+			}
+			status, elapsed := c.check(healthURL)
 			now := time.Now()
 			c.store.UpdateHealth(r.ID, status, now, elapsed.Milliseconds())
 		}(route)
