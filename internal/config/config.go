@@ -28,9 +28,12 @@ type Config struct {
 	LogLevel  string
 	LogFormat string // text, json
 
-	HealthEnabled  bool
-	HealthInterval time.Duration
-	HealthTimeout  time.Duration
+	HealthEnabled    bool
+	HealthInterval   time.Duration
+	HealthTimeout    time.Duration
+	HealthCAFile     string
+	HealthClientCert string
+	HealthClientKey  string
 
 	WebhookURL    string
 	WebhookFormat string // json, slack, discord
@@ -57,6 +60,9 @@ func Load() *Config {
 		HealthEnabled:    envBool("ROUTEBOARD_HEALTH_ENABLED", true),
 		HealthInterval:   envDuration("ROUTEBOARD_HEALTH_INTERVAL", 30*time.Second),
 		HealthTimeout:    envDuration("ROUTEBOARD_HEALTH_TIMEOUT", 5*time.Second),
+		HealthCAFile:     envStr("ROUTEBOARD_HEALTH_CA_FILE", ""),
+		HealthClientCert: envStr("ROUTEBOARD_HEALTH_CLIENT_CERT_FILE", ""),
+		HealthClientKey:  envStr("ROUTEBOARD_HEALTH_CLIENT_KEY_FILE", ""),
 		WebhookURL:       envStr("ROUTEBOARD_WEBHOOK_URL", ""),
 		WebhookFormat:    envStr("ROUTEBOARD_WEBHOOK_FORMAT", "json"),
 	}

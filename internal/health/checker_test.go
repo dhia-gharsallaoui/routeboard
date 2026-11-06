@@ -20,7 +20,9 @@ func testConfig() *config.Config {
 }
 
 func TestCheckHealthy(t *testing.T) {
+	requestedMethod := make(chan string, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestedMethod <- r.Method
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
@@ -29,12 +31,15 @@ func TestCheckHealthy(t *testing.T) {
 	s := store.New(nil)
 	checker := NewChecker(cfg, s)
 
-	status, elapsed := checker.check(srv.URL)
+	status, elapsed := checker.check(srv.URL, http.MethodHead)
 	if status != model.HealthHealthy {
 		t.Errorf("got %q, want %q", status, model.HealthHealthy)
 	}
 	if elapsed <= 0 {
 		t.Error("expected elapsed > 0 for healthy check")
+	}
+	if got := <-requestedMethod; got != http.MethodHead {
+		t.Errorf("method = %q, want %q", got, http.MethodHead)
 	}
 }
 
@@ -46,7 +51,7 @@ func TestCheckUnhealthy500(t *testing.T) {
 
 	checker := NewChecker(testConfig(), store.New(nil))
 
-	status, elapsed := checker.check(srv.URL)
+	status, elapsed := checker.check(srv.URL, http.MethodHead)
 	if status != model.HealthUnhealthy {
 		t.Errorf("got %q, want %q", status, model.HealthUnhealthy)
 	}
@@ -63,7 +68,7 @@ func TestCheckDegraded4xx(t *testing.T) {
 
 	checker := NewChecker(testConfig(), store.New(nil))
 
-	status, elapsed := checker.check(srv.URL)
+	status, elapsed := checker.check(srv.URL, http.MethodHead)
 	if status != model.HealthDegraded {
 		t.Errorf("got %q, want %q", status, model.HealthDegraded)
 	}
@@ -75,7 +80,7 @@ func TestCheckDegraded4xx(t *testing.T) {
 func TestCheckUnhealthyConnectionRefused(t *testing.T) {
 	checker := NewChecker(testConfig(), store.New(nil))
 
-	status, elapsed := checker.check("http://localhost:1") // nothing listening
+	status, elapsed := checker.check("http://localhost:1", http.MethodHead) // nothing listening
 	if status != model.HealthUnhealthy {
 		t.Errorf("got %q, want %q", status, model.HealthUnhealthy)
 	}
@@ -95,7 +100,7 @@ func TestCheckHealthyRedirect(t *testing.T) {
 
 	checker := NewChecker(testConfig(), store.New(nil))
 
-	status, elapsed := checker.check(redirect.URL)
+	status, elapsed := checker.check(redirect.URL, http.MethodHead)
 	if status != model.HealthHealthy {
 		t.Errorf("got %q, want %q", status, model.HealthHealthy)
 	}
@@ -131,7 +136,6 @@ func TestCheckAllUpdatesStore(t *testing.T) {
 		t.Errorf("expected 1 response time history entry, got %d", len(route.ResponseTimeHistory))
 	}
 
-	// Should have received a health change event
 	hasHealthEvent := false
 	for _, e := range events {
 		if e.Type == store.ChangeHealth {
@@ -140,6 +144,64 @@ func TestCheckAllUpdatesStore(t *testing.T) {
 	}
 	if !hasHealthEvent {
 		t.Error("expected a ChangeHealth event")
+	}
+}
+
+func TestCheckAllUsesHealthEndpoint(t *testing.T) {
+	requestedPath := make(chan string, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodHead {
+			t.Errorf("method = %q, want HEAD", r.Method)
+		}
+		requestedPath <- r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	s := store.New(nil)
+	s.Set(&model.Route{
+		ID:        "health-endpoint",
+		URL:       srv.URL + "/dashboard",
+		HealthURL: srv.URL + "/ping",
+		Title:     "Health endpoint override",
+	})
+
+	checker := NewChecker(testConfig(), s)
+	checker.checkAll()
+
+	if got := <-requestedPath; got != "/ping" {
+		t.Errorf("health request path = %q, want %q", got, "/ping")
+	}
+
+	route, _ := s.Get("health-endpoint")
+	if route.URL != srv.URL+"/dashboard" {
+		t.Errorf("dashboard URL = %q, want unchanged URL %q", route.URL, srv.URL+"/dashboard")
+	}
+	if route.Health != model.HealthHealthy {
+		t.Errorf("route health = %q, want %q", route.Health, model.HealthHealthy)
+	}
+}
+
+func TestCheckAllUsesHealthMethod(t *testing.T) {
+	requestedMethod := make(chan string, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestedMethod <- r.Method
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	s := store.New(nil)
+	s.Set(&model.Route{
+		ID:           "get-health",
+		URL:          srv.URL,
+		HealthMethod: http.MethodGet,
+	})
+
+	checker := NewChecker(testConfig(), s)
+	checker.checkAll()
+
+	if got := <-requestedMethod; got != http.MethodGet {
+		t.Errorf("method = %q, want %q", got, http.MethodGet)
 	}
 }
 
