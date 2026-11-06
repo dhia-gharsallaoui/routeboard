@@ -115,6 +115,7 @@ metadata:
     routeboard.io/order: "10"                    # Sort order within group
     routeboard.io/hidden: "true"                 # Hide from dashboard
     routeboard.io/url: "https://custom.url"      # Override computed URL
+    routeboard.io/health-endpoint: "/ping"       # Health-check path (dashboard URL is unchanged)
     routeboard.io/health: "false"                # Exclude from health checks (route stays listed)
 ```
 

@@ -9,15 +9,16 @@ func TestApplyAnnotations(t *testing.T) {
 	}
 
 	annotations := map[string]string{
-		"routeboard.io/title":       "Custom Title",
-		"routeboard.io/description": "A great service",
-		"routeboard.io/icon":        "🎯",
-		"routeboard.io/group":       "Monitoring",
-		"routeboard.io/order":       "5",
-		"routeboard.io/hidden":      "true",
-		"routeboard.io/url":         "https://custom.example.com",
-		"routeboard.io/health":      "false",
-		"unrelated/annotation":      "ignored",
+		"routeboard.io/title":          "Custom Title",
+		"routeboard.io/description":    "A great service",
+		"routeboard.io/icon":           "🎯",
+		"routeboard.io/group":          "Monitoring",
+		"routeboard.io/order":          "5",
+		"routeboard.io/hidden":         "true",
+		"routeboard.io/url":            "https://custom.example.com",
+		"routeboard.io/health":         "false",
+		"routeboard.io/health-endpoint": "/ping",
+		"unrelated/annotation":         "ignored",
 	}
 
 	ApplyAnnotations(r, annotations)
@@ -43,8 +44,25 @@ func TestApplyAnnotations(t *testing.T) {
 	if r.URL != "https://custom.example.com" {
 		t.Errorf("URL = %q, want %q", r.URL, "https://custom.example.com")
 	}
+	if r.HealthURL != "https://custom.example.com/ping" {
+		t.Errorf("HealthURL = %q, want %q", r.HealthURL, "https://custom.example.com/ping")
+	}
 	if !r.HealthDisabled {
 		t.Error("HealthDisabled = false, want true")
+	}
+}
+
+func TestApplyAnnotationsHealthEndpointKeepsDetectedURL(t *testing.T) {
+	r := &Route{URL: "https://app.example.com/dashboard"}
+	ApplyAnnotations(r, map[string]string{
+		"routeboard.io/health-endpoint": "/ping",
+	})
+
+	if r.URL != "https://app.example.com/dashboard" {
+		t.Errorf("URL = %q, want the detected dashboard URL unchanged", r.URL)
+	}
+	if r.HealthURL != "https://app.example.com/ping" {
+		t.Errorf("HealthURL = %q, want %q", r.HealthURL, "https://app.example.com/ping")
 	}
 }
 

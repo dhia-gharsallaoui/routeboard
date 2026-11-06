@@ -143,6 +143,41 @@ func TestCheckAllUpdatesStore(t *testing.T) {
 	}
 }
 
+func TestCheckAllUsesHealthEndpoint(t *testing.T) {
+	requestedPath := make(chan string, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodHead {
+			t.Errorf("method = %q, want HEAD", r.Method)
+		}
+		requestedPath <- r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	s := store.New(nil)
+	s.Set(&model.Route{
+		ID:       "health-endpoint",
+		URL:      srv.URL + "/dashboard",
+		HealthURL: srv.URL + "/ping",
+		Title:    "Health endpoint override",
+	})
+
+	checker := NewChecker(testConfig(), s)
+	checker.checkAll()
+
+	if got := <-requestedPath; got != "/ping" {
+		t.Errorf("health request path = %q, want %q", got, "/ping")
+	}
+
+	route, _ := s.Get("health-endpoint")
+	if route.URL != srv.URL+"/dashboard" {
+		t.Errorf("dashboard URL = %q, want unchanged URL %q", route.URL, srv.URL+"/dashboard")
+	}
+	if route.Health != model.HealthHealthy {
+		t.Errorf("route health = %q, want %q", route.Health, model.HealthHealthy)
+	}
+}
+
 func TestCheckAllSkipsHealthDisabled(t *testing.T) {
 	requests := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

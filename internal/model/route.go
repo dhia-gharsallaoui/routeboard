@@ -16,6 +16,7 @@ type Route struct {
 	Namespace   string            `json:"namespace"`
 	Source      RouteSource       `json:"source"`
 	URL         string            `json:"url"`
+	HealthURL   string            `json:"-"`
 	Hosts       []string          `json:"hosts"`
 	Paths       []string          `json:"paths"`
 	TLS         bool              `json:"tls"`
